@@ -6,7 +6,7 @@ let submitted=0;
 node('coachForm').requestSubmit=()=>{submitted++;};
 class Rec{
  constructor(){this.aborted=false;Rec.instances.push(this);}
- start(){}
+ start(){this.onstart?.();}
  abort(){this.aborted=true;}
 }
 Rec.instances=[];
