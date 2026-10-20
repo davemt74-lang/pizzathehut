@@ -1,4 +1,27 @@
-# Pizza Lab v1.5.14 — Workday Context and Opt-In Coaching
+# Pizza Lab v1.5.15 — Conversational Kitchen Operations
+
+## A. Confirmed voice production logging — PR #26
+- Exact batch-code and named-refrigerator temperatures, and confirmed dough balling, all with user/time/source attribution.
+- A unique per-user action ID and atomic database transaction prevent duplicate changes. Unsupported or ambiguous actions stay unsaved.
+- Added schema and idempotent upgrade path for the new records.
+
+## B. Cooking assistant — PR #27
+- Explicit pizza test IDs for timer start/stop and chef-confirmed rotation, pull-back and finish events.
+- Spoken confirmations preserve their declared source; reminders and suggestions cannot count as chef-performed actions.
+
+## C. Photo evidence accuracy — PR #28
+- Claude live analysis selects the exact saved scan ID associated with the photo capture and validates that it belongs to the selected pizza.
+- Chat communicates capture failures and retains manual bounding-box and camera teardown protections.
+
+## D. Authenticated integration and packaging — PR #29
+- Disposable MySQL/HTTP tests for CSRF, confirmation gate, deduplicated writes, conflicts, measured values, recorded actor/source, and cooking activities.
+- PHP 8.2/8.3/8.4, Node, application package integrity and SHA-256.
+
+**Acceptance boundary:** Real iPhone microphone/camera, kitchen noise, oven operation and live Claude requests remain to be verified on the actual installation. Back up database, config and private uploads; run Super Admin upgrade before production use.
+
+---
+
+## Previous release — v1.5.14 Workday Awareness
 
 ## Section A — Recorded workday awareness (PR #23)
 - On-page, read-only workday strip: unique day, multiple days requiring selection or no day with confirmed creation.

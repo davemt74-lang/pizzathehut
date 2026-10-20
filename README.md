@@ -1,4 +1,21 @@
-# Pizza Lab v1.5.14 — Automatic Workday Awareness
+# Pizza Lab v1.5.15 — Conversational Kitchen Operations
+
+**Current release:** one-page Pizza Lab chat, with hamburger menu, account dropdown, microphone and camera controls in the sticky footer.
+
+## What's new in v1.5.15
+
+- Spoken or typed production records: exact batch-code dough temperature, separate named-refrigerator ambient temperature and batch balling. A visible confirmation card is mandatory; the server records signed-in user, declared input source, and observation time, with unique action identifiers to block duplicate writes.
+- Chef-confirmed cooking timeline events for a specific pizza evidence ID: timer started/stopped, rotation, pull-back and finish. Reminder/AI suggestions never count as completed actions.
+- Camera photos analyzed by their exact private uploaded scan ID, never a different scan uploaded later. Same-origin embedded tracker, adjustable pizza box and voice “Pizza, take photo” remain available. Capture errors flow to chat.
+- Disposable MySQL and authenticated HTTP certification covers confirmation rejection, changed-duplicate conflict, one-time data writes, fridge/dough separation, balling and attributable voice cooking actions.
+- No claim of verified physical oven measurements, iPhone microphone reliability or live Claude API analysis. CI tests are not production acceptance. Timers here record start/stop events; they do not guarantee a synchronized persistent countdown across devices.
+- The upgrade adds `chat_kitchen_actions` and `kitchen_environment_readings` tables, without rewriting historical dough and pizza evidence.
+
+**Upgrading:** Back up the MySQL database, `config.php` and all private uploads first. Preserve configuration and uploads; run `upgrade.php` as Super Admin and acknowledge the completed backup.
+
+---
+
+## Previous release — v1.5.14 Workday Awareness
 
 ## Latest release
 
