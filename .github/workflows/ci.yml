@@ -1,0 +1,36 @@
+name: Pizza Lab CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  source-validation:
+    name: PHP ${{ matrix.php }} and Node contracts
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.3', '8.4']
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, curl, sodium, pdo_mysql, fileinfo
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run local contract checks
+        run: sh tests/verify-local.sh
+      - name: Ensure no secrets or customer uploads are committed
+        run: |
+          test ! -e config.php
+          test ! -d private/uploads
+          ! git ls-files | grep -E '(^|/)(\.env|config\.php|.*\.pem|.*\.key)$|^private/uploads/'
+      - name: Check PHP files for syntax errors
+        run: |
+          find . -name '*.php' -type f -print0 | xargs -0 -n1 php -l
