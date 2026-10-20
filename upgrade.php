@@ -29,6 +29,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             $results[]='Added team account activation control';
         }
         $auditSchema=file_get_contents(__DIR__.'/schema.sql');
+        if (!preg_match('/CREATE TABLE IF NOT EXISTS batch_ai_reviews \(.*?\) ENGINE=InnoDB;/s',$auditSchema,$coachMatch)) throw new RuntimeException('Missing batch AI review table definition.');
+        db()->exec($coachMatch[0]);
+        $results[]='Batch AI coach history ready';
         if (!preg_match('/CREATE TABLE IF NOT EXISTS team_audit_log \(.*?\) ENGINE=InnoDB;/s',$auditSchema,$auditMatch)) throw new RuntimeException('Missing team audit table schema');
         db()->exec($auditMatch[0]);
         $results[]='Team administration audit log ready';

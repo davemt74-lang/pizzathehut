@@ -14,3 +14,5 @@ if command -v node >/dev/null 2>&1; then node tests/verify-makers.js; fi
 php tests/verify-experiments.php
 
 php tests/verify-insights.php
+
+php tests/verify-coach.php

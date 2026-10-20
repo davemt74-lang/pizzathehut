@@ -3,7 +3,7 @@ declare(strict_types=1);
 /** Read-only analytics. Missing values are unknown; aggregates never double count joins. */
 function lab_insight_filters(array $get): array {
     $filters=[];
-    foreach (['recipe_id','maker_id'] as $key) {
+    foreach (['recipe_id','maker_id','batch_id'] as $key) {
         $value=trim((string)($get[$key]??''));
         if($value==='') {$filters[$key]=null;continue;}
         if(!ctype_digit($value) || (int)$value<1 || (int)$value>2147483647) throw new InvalidArgumentException('Invalid '.$key);
@@ -23,6 +23,7 @@ function lab_insight_filters(array $get): array {
 function lab_insight_conditions(array $filters): array {
     $where=[];$params=[];
     if($filters['recipe_id']!==null){$where[]='b.recipe_id=?';$params[]=$filters['recipe_id'];}
+    if($filters['batch_id']!==null){$where[]='b.id=?';$params[]=$filters['batch_id'];}
     if($filters['maker_id']!==null){$where[]='b.made_by_user_id=?';$params[]=$filters['maker_id'];}
     if($filters['stage']!==''){$where[]='b.stage=?';$params[]=$filters['stage'];}
     if($filters['from']!==''){$where[]='b.mixed_at>=?';$params[]=$filters['from'].' 00:00:00';}

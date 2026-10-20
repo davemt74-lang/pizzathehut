@@ -1,3 +1,13 @@
+# v1.5.2 — AI Dough Intelligence & Agent Chat
+
+- New authenticated mobile Agent Chat for all recipes, selected recipe/variation, or specific hand-labeled dough batch.
+- Measured batch and pizza evidence, temperature history, snapshot recipe, process steps, usage and logged waste sent securely from PHP to Claude.
+- Structured hypotheses vs observations, controlled next tests, evidence references, confidence and missing-data limitations.
+- Per-user saved Q&A reports include immutable evidence snapshots; API key never exposed to browsers.
+- Idempotent new batch_ai_reviews table for upgrade.php and fresh schema.sql.
+- Batch tracker and batch report shortcuts to Agent Chat.
+- Automated source contracts on PHP 8.2/8.3/8.4 and Node 22; real device/MySQL/API calls not certified by these checks.
+
 # Pizza Lab v1.5.0 — Recipe experiments & evidence analytics
 
 - Unlimited recipe-agnostic experiment registry: create from any recipe, atomically clone its formula and editable production steps, set hypothesis and objective. Variations are separately named actual recipes and can spawn their own batches.

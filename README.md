@@ -1,3 +1,7 @@
+## v1.5.2 — Evidence-grounded Agent Chat
+
+Choose **all recipes**, **any recipe or variation**, or **one exact dough batch** in Agent Chat. Ask Claude to explain process differences, dough temperature/age, oven spring, crispness, stone conditions, topping weights, or recorded waste. It returns measured findings, uncertainties, alternative mechanisms, and one-variable-at-a-time experiment suggestions. No unmeasured values are assumed; reports are attributed per user and persist with their measurement snapshot. No recipe or timer changes are made automatically. Requests are user-triggered and rate-limited. All-recipes analysis samples up to 24 recent batches; an individual batch is always directly selectable. The package requires an upgrade.php schema migration or a fresh installation. Real MySQL, iPhone and live Claude acceptance remain separate from GitHub CI.
+
 # Pizza Lab v1.4.1 — Batch Maker Attribution & Dough Timeline
 
 **Standalone PHP 8.2+/MySQL app** for mobile/desktop browser, HTTPS required for camera/microphone.

@@ -5,6 +5,7 @@ auth();
 require_once __DIR__.'/batch_tracking.php';
 require_once __DIR__.'/team.php';
 require_once __DIR__.'/experiments.php';
+require_once __DIR__.'/batch_ai.php';
 header('Cache-Control: no-store');
 try {
     $action=(string)($_GET['action'] ?? $_POST['action'] ?? '');
@@ -21,6 +22,10 @@ try {
             require_super_admin();
             $users=query('SELECT id,display_name,email,role,is_active,created_at FROM users ORDER BY FIELD(role,"super_admin","team_member"),display_name,id')->fetchAll();
             json_out(['ok'=>true,'users'=>$users]);
+        }
+        if ($action==='batchCoachHistory') {
+            [$scope,$target]=lab_coach_scope((string)($_GET['scope']??'all'),$_GET['target_id']??null);
+            json_out(['ok'=>true,'reviews'=>lab_coach_history($scope,$target,auth())]);
         }
         if ($action==='experimentDetail') { json_out(['ok'=>true,'report'=>lab_experiment_detail((int)($_GET['id']??0))]); }
         if ($action==='labAnalytics') { json_out(['ok'=>true,'analytics'=>lab_recipe_analytics()]); }
@@ -64,6 +69,7 @@ try {
         query('UPDATE users SET password_hash=? WHERE id=?',[password_hash($pwd,PASSWORD_DEFAULT),(int)$u['id']]);
         json_out(['ok'=>true]);
     }
+    if ($action==='batchCoachAsk') {json_out(['ok'=>true,'review'=>lab_coach_ask($d)]);}
     if ($action==='createExperiment') { json_out(['ok'=>true,'id'=>lab_create_experiment($d)]); }
     if ($action==='updateExperiment') { lab_update_experiment($d); json_out(['ok'=>true]); }
     if ($action==='saveRecipe') {

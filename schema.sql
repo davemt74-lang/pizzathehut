@@ -257,3 +257,20 @@ CREATE TABLE IF NOT EXISTS pizza_experiments (
  CONSTRAINT fk_experiment_variation FOREIGN KEY (variation_recipe_id) REFERENCES recipes(id) ON DELETE RESTRICT,
  CONSTRAINT fk_experiment_creator FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
+
+
+-- AI dough coach reports are saved per requesting user, with immutable evidence snapshots.
+CREATE TABLE IF NOT EXISTS batch_ai_reviews (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ scope ENUM('all','recipe','batch') NOT NULL,
+ target_id BIGINT UNSIGNED NULL,
+ question VARCHAR(600) NOT NULL,
+ created_by_user_id BIGINT UNSIGNED NOT NULL,
+ model VARCHAR(100) NOT NULL,
+ evidence_snapshot_json LONGTEXT NOT NULL,
+ analysis_json LONGTEXT NOT NULL,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ INDEX idx_batch_ai_user_scope (created_by_user_id,scope,target_id,id),
+ INDEX idx_batch_ai_rate (created_by_user_id,created_at),
+ CONSTRAINT fk_batch_ai_user FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
