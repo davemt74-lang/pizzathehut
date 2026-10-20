@@ -1,6 +1,15 @@
-## v1.5.2 — Evidence-grounded Agent Chat
+# Pizza Lab v1.5.3 — AI Experiment Proposals + Private Evidence Gallery
 
-Choose **all recipes**, **any recipe or variation**, or **one exact dough batch** in Agent Chat. Ask Claude to explain process differences, dough temperature/age, oven spring, crispness, stone conditions, topping weights, or recorded waste. It returns measured findings, uncertainties, alternative mechanisms, and one-variable-at-a-time experiment suggestions. No unmeasured values are assumed; reports are attributed per user and persist with their measurement snapshot. No recipe or timer changes are made automatically. Requests are user-triggered and rate-limited. All-recipes analysis samples up to 24 recent batches; an individual batch is always directly selectable. The package requires an upgrade.php schema migration or a fresh installation. Real MySQL, iPhone and live Claude acceptance remain separate from GitHub CI.
+**Recipe library:** Unlimited formulas, editable process steps, dough batches, chef attribution, evidence, and analytics.
+
+- `proposals.php`: user-initiated Claude proposals with explicit ingredient changes and pending review. Both active roles can approve or reject. Approval atomically creates a new experimental recipe, copies its process steps, and links an experiment. It does not change the baseline recipe or previous batch snapshots. Suggested process edits are guidance only, not automatically executed. Stale proposals are rejected if their source recipe changes.
+- `gallery.php`: authenticated, paged media gallery with top, bottom, side, crumb and scanner view filters, plus recipe, batch and test selectors. Images remain in private upload storage and are delivered through authenticated `media.php`.
+- Existing installations: back up database, config.php and uploads; deploy new files without overwriting private data, then visit `upgrade.php` as Super Admin. Fresh installs use schema.sql.
+
+**Validation:** Source checks and CI do not replace a live MySQL upgrade, Anthropic API test, or real iPhone camera/voice acceptance. Camera images are not a temperature or crispness sensor.
+## v1.5.2 — Evidence-grounded Agent Chat (proposed until PR merged)
+
+Open **Agent Chat** from the main navigation or **Ask agent about batch** from a dough batch. Choose all recipes, any recipe or variation, or a specific hand-labeled batch. Ask a question in ordinary language; Claude Haiku 5.5 (or the saved admin model setting) receives only recorded process and pizza measurements. Reports include observed findings, plausible hypotheses, controlled next tests, evidence IDs, confidence and limitations. Reports are saved privately per asking account with their exact evidence snapshot; no changes are made automatically to formulas, timers, or batch records. A 30-second per-user throttle limits calls. The report covers the most recent 24 selected batches, and up to six recent pizzas per batch; this is a sampling limit, not proof of absence of older data. iPhone/Claude/MySQL deployment remains unverified until tested on a live host.
 
 # Pizza Lab v1.4.1 — Batch Maker Attribution & Dough Timeline
 
