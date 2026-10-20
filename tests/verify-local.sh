@@ -46,7 +46,7 @@ node --check assets/agent_chat_camera.js
 php tests/verify-chat-camera-selection.php
 
 # Ensure the release package has current documentation, not an older version label.
-php -r '$n=file_get_contents("RELEASE_NOTES.md");$r=file_get_contents("README.md");if(!str_starts_with($n,"# Pizza Lab v1.5.15")||!str_starts_with($r,"# Pizza Lab v1.5.15")){fwrite(STDERR,"FAIL: v1.5.15 release documentation drift\\n");exit(1);}echo "PASS: current release documentation\\n";'
+php -r '$n=file_get_contents("RELEASE_NOTES.md");$r=file_get_contents("README.md");if(!str_starts_with($n,"# Pizza Lab v1.5.16A")||!str_starts_with($r,"# Pizza Lab v1.5.16A")){fwrite(STDERR,"FAIL: v1.5.16A release documentation drift\\n");exit(1);}echo "PASS: current release documentation\\n";'
 
 php tests/verify-upgrade-preflight.php
 
@@ -69,3 +69,6 @@ node tests/verify-chat-cooking.js
 php tests/verify-chat-cooking.php
 
 php tests/verify-exact-scan.php
+
+php tests/verify-kitchen-timers.php
+node --check assets/agent_chat_timers.js

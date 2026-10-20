@@ -199,6 +199,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             db()->exec($matched[0]);
             $results[]='v1.5.15 '.$tableName.' ready';
         }
+        if (!preg_match('/CREATE TABLE IF NOT EXISTS kitchen_activity_timers \\(.*?\\) ENGINE=InnoDB;/s',$schema,$timerTable)) throw new RuntimeException('Missing kitchen timer schema.');
+        db()->exec($timerTable[0]);
+        $results[]='v1.5.16A persistent kitchen timers ready';
         $results[]='v1.4.1 batch maker attribution and role-aware access verified';
     } catch (Throwable $e) {
         error_log('Pizza Lab upgrade failure: '.$e->getMessage());

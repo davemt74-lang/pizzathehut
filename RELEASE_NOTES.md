@@ -1,3 +1,11 @@
+# Pizza Lab v1.5.16A — Persistent Kitchen Activity
+
+- Server-authoritative cooking timer state, UTC elapsed timing and authenticated kitchen snapshot reads.
+- Per-pizza serialized, audited start/pause/resume/stop/reset; reject duplicate active starts and conflicting event replays.
+- Agent Chat timer status display with reload and device-visible recovery.
+- Additive kitchen_activity_timers migration; preserve v1.5.15 actions and private uploads.
+- Automated test coverage, distinct from physical iPhone/oven acceptance. Reminders and background notification delivery are not part of Section A.
+
 # Pizza Lab v1.5.15 — Conversational Kitchen Operations
 
 ## A. Confirmed voice production logging — PR #26

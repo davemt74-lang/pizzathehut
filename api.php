@@ -9,6 +9,7 @@ require_once __DIR__.'/ai_experiments.php';
 require_once __DIR__.'/batch_ai.php';
 require_once __DIR__.'/ai_proposals.php';
 require_once __DIR__.'/cook_activity_lib.php';
+require_once __DIR__.'/kitchen_timer_lib.php';
 require_once __DIR__.'/chat_kitchen_lib.php';
 require_once __DIR__.'/workday_context_lib.php';
 header('Cache-Control: no-store');
@@ -23,6 +24,7 @@ try {
             $counts=['recipes'=>count($recipes),'tests'=>(int)db()->query('SELECT COUNT(*) FROM evidence')->fetchColumn(),'photos'=>(int)db()->query("SELECT COUNT(*) FROM media WHERE kind IN ('top','bottom','side','crumb')")->fetchColumn(),'batches'=>(int)db()->query('SELECT COUNT(*) FROM dough_batches')->fetchColumn()];
             json_out(['ok'=>true,'recipes'=>$recipes,'recipe_steps'=>$recipeSteps,'batches'=>$batches,'batch_makers'=>query('SELECT id,display_name,is_active FROM users ORDER BY display_name,id')->fetchAll(),'evidence'=>$evidence,'counts'=>$counts,'voice_profile'=>query('SELECT profile_name,wake_phrase,language,voice_uri,voice_rate,require_wake,start_alias FROM voice_profiles WHERE user_id=?',[auth()])->fetch() ?: null,'experiments'=>lab_experiments(),'ovens'=>query('SELECT id,name FROM oven_layouts ORDER BY name,id LIMIT 80')->fetchAll(),'settings'=>['model'=>setting('model','claude-haiku-5-5'),'key_configured'=>setting('claude_key')!=='']]);
         }
+        if ($action==='kitchenTimers') { json_out(['ok'=>true,'timers'=>lab_timer_list()]); }
         if ($action==='cookActivity') {
             $id=(int)($_GET['evidence_id']??0);row_owned('evidence',$id);
             $history=query('SELECT a.id,a.event_type,a.event_class,a.source,a.elapsed_seconds,a.media_id,a.occurred_at,u.display_name AS chef FROM oven_cook_activity a JOIN users u ON u.id=a.created_by_user_id WHERE a.evidence_id=? ORDER BY a.id DESC LIMIT 150',[$id])->fetchAll();
@@ -300,6 +302,17 @@ try {
             }
         }
         $uid=auth();
+        if(lab_timer_event($event['event_type'])){
+            $target=null;
+            if(array_key_exists('target_seconds',$d)&&$d['target_seconds']!==null&&$d['target_seconds']!==''){
+                $raw=(string)$d['target_seconds'];
+                if(!preg_match('/^[0-9]{1,4}$/D',$raw))fail('Invalid timer target.');
+                $target=(int)$raw;
+            }
+            try{$saved=lab_timer_activity_save($id,$event,$clientId,$uid,isset($session['id'])?(int)$session['id']:null,$target);}
+            catch(InvalidArgumentException $ex){fail($ex->getMessage());}
+            json_out($saved);
+        }
         try {query('INSERT INTO oven_cook_activity (evidence_id,session_id,event_type,source,event_class,elapsed_seconds,media_id,client_event_id,created_by_user_id) VALUES (?,?,?,?,?,?,?,?,?)',[$id,$session['id']??null,$event['event_type'],$event['source'],$event['event_class'],$event['elapsed_seconds'],$event['media_id'],$clientId,$uid]);$activityId=(int)db()->lastInsertId();}
         catch(PDOException $ex){if($ex->getCode()!=='23000')throw $ex;$saved=query('SELECT id,evidence_id,event_type,source,elapsed_seconds,media_id FROM oven_cook_activity WHERE created_by_user_id=? AND client_event_id=?',[$uid,$clientId])->fetch();if(!$saved || (int)$saved['evidence_id']!==$id || $saved['event_type']!==$event['event_type'] || $saved['source']!==$event['source'] || ($saved['elapsed_seconds']===null?null:(int)$saved['elapsed_seconds'])!==$event['elapsed_seconds'] || ($saved['media_id']===null?null:(int)$saved['media_id'])!==$event['media_id'])fail('Event identifier already used for another event.',409);$activityId=(int)$saved['id'];}
         json_out(['ok'=>true,'id'=>$activityId,'event_class'=>$event['event_class']]);
