@@ -1,21 +1,10 @@
-# Pizza Lab v1.5.3 — Release notes
+# Pizza Lab v1.5.5 — Dough Readiness & Oven/Cooking Evidence
 
-- Add reviewed, pending AI formulation proposals based on any source recipe and recorded test data.
-- Approval creates a new variation; rejection and approval preserve attribution.
-- Numeric gram adjustments are allowlisted, validated, and checked against the original recipe fingerprint.
-- Add private image gallery with view angle, recipe, batch and test filters.
-- Add optional crumb photo upload and include it in saved image analysis.
-- Add idempotent upgrade migration for `ai_recipe_proposals`.
-- Pending deployment acceptance: real MySQL, Claude, and iPhone Safari.
+- Added dough readiness observations for recipe-linked batches, with container temperatures and evidence-confidence caveats.
+- Added desktop oven floor builder (NS/EW floor ellipse, centered inscribed circle, inside height, fire location, zones, real temperature readings).
+- Added standalone pizza camera tracker with assisted low-confidence box detection and manual correction, private photo evidence, and Claude review.
+- **Voice command:** With the tracker active, “Pizza, take photo” captures and analyzes the selected pizza. User start/stop timer commands remain in the existing scanner; “rotate,” “pull back,” and “time left” remain agent announcements.
+- Added immutable photo box metadata and server-side ownership/evidence validation.
+- Added automated PHP/Node syntax and feature contract tests.
 
-## v1.5.4 — Workdays & visual crust comparison
-- Dedicated multi-day Workday Tracker. The same batch can be logged on mixing, balling, proofing and service days; every activity has an explicit date, actor and notes.
-- Workdays can link actual pizza tests for true per-shift metrics without assuming the pizza was baked on its database creation date.
-- Optional pizza evidence stays optional; averages show counts of measured ratings.
-- Side-by-side photographic comparisons by angle (top, bottom, side, crumb); private authorized image delivery.
-- User-triggered Claude comparison of two pizza photos; saved evidence snapshots, source batch recipes, temperature and fermentation history and recorded workdays. AI describes visible differences and distinguishes measured data from hypotheses.
-- No automatic editing of recipes; no fake temperature or crispness measurements from images.
-- Install/upgrade schema tables: `workdays`, `workday_batch_events`, `workday_pizzas`, `visual_comparisons`. Existing records are untouched.
-- Run `upgrade.php` as Super Admin after backing up your database and private uploads. Existing evidence remains unlinked until explicitly assigned.
-
-Source-only validations do not certify the live database migration, Claude response or real iPhone camera.
+Live MySQL, iPhone camera/microphone and Claude API behavior still require field tests; source/CI checks are not production certification.

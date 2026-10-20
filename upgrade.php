@@ -174,6 +174,13 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             db()->exec($m[0]);
             $results[]='v1.5.4 '. $tableName .' ready';
         }
+        // Create-only v1.5.5 upgrades: no edits to historical readings or recipes.
+        foreach (['oven_layouts','oven_zone_readings','dough_readiness_checks','pizza_tracker_boxes'] as $tableName) {
+            $pattern='/CREATE TABLE IF NOT EXISTS '.preg_quote($tableName,'/').' \(.*?\) ENGINE=InnoDB;/s';
+            if (!preg_match($pattern,$schema,$m)) throw new RuntimeException('Missing '.$tableName.' schema.');
+            db()->exec($m[0]);
+            $results[]='v1.5.5 '.$tableName.' ready';
+        }
         $results[]='v1.4.1 batch maker attribution and role-aware access verified';
     } catch (Throwable $e) {
         error_log('Pizza Lab upgrade failure: '.$e->getMessage());

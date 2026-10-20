@@ -277,6 +277,21 @@ try {
         query('INSERT INTO media (evidence_id,kind,stored_name,mime,original_name) VALUES (?,?,?,?,?)',[$id,$kind,$stored,$mime,plain($file['name'],180)]);
         json_out(['ok'=>true,'media_id'=>(int)db()->lastInsertId()]);
     }
+    if ($action==='saveTrackerBox') {
+        $mediaId=(int)($d['media_id']??0);$evidenceId=(int)($d['evidence_id']??0);
+        $row=query('SELECT evidence_id,kind FROM media WHERE id=?',[$mediaId])->fetch();
+        if(!$row || $row['kind']!=='scan' || (int)$row['evidence_id']!==$evidenceId)fail('Image is not a scan belonging to this pizza.',403);
+        row_owned('evidence',$evidenceId);
+        $x=number($d['x']??null,0,1,'box X');$y=number($d['y']??null,0,1,'box Y');
+        $w=number($d['width']??null,.01,1,'box width');$h=number($d['height']??null,.01,1,'box height');
+        if($x+$w>1.00001||$y+$h>1.00001)fail('Bounding box exceeds image.');
+        $source=(string)($d['source']??'manual');$confidence=(string)($d['confidence']??'low');
+        if(!in_array($source,['ai','manual','local'],true)||!in_array($confidence,['low','medium','high'],true))fail('Invalid detection provenance.');
+        // One immutable box per captured photo. Avoid silent edits to evidence.
+        try{query('INSERT INTO pizza_tracker_boxes (media_id,evidence_id,x_norm,y_norm,width_norm,height_norm,source,confidence,created_by_user_id) VALUES (?,?,?,?,?,?,?,?,?)',[$mediaId,$evidenceId,$x,$y,$w,$h,$source,$confidence,auth()]);}
+        catch(PDOException $ex){if($ex->getCode()==='23000')fail('Bounding box already saved for this photo.',409);throw $ex;}
+        json_out(['ok'=>true]);
+    }
     if ($action==='saveVoiceProfile') {
         $name=plain($d['profile_name']??'Pizza chef',80);
         if ($name==='') fail('Profile name required');
@@ -324,6 +339,10 @@ try {
         $prompt.="\nCurrent recipe record: ".json_encode($r,JSON_INVALID_UTF8_SUBSTITUTE).($r===null?" (No recipe supplied; do not infer ingredients.)":"");
         $prompt.="\nDough batch tracking (if known; do not infer any missing process timestamps): ".json_encode(['batch'=>$batch,'recipe_at_batch_creation'=>$batch===null?null:json_decode($batch['recipe_snapshot']??'null',true),'timeline'=>$batchEvents,'linked_test_aggregates'=>$batchStats,'production_process'=>$processInfo],JSON_INVALID_UTF8_SUBSTITUTE);
         $prompt.="\nIf a historical batch recipe snapshot and its current recipe record differ, use the snapshot as the batch formula. Batch aggregation is correlation and is not a controlled causal experiment. Do not infer precise pizza cook age from evidence creation date.";
+        if($kind==='live') {
+            $latestBox=query('SELECT x_norm,y_norm,width_norm,height_norm,source,confidence FROM pizza_tracker_boxes WHERE media_id=?',[(int)$media[0]['id']])->fetch();
+            if($latestBox)$prompt.="\nCamera tracker bounding-box guide (normalized coordinates, not verified object recognition): ".json_encode($latestBox).". Inspect the entire image; do not assume the highlighted area is actually a pizza.";
+        }
         $contents=[['type'=>'text','text'=>$prompt]];
         foreach ($media as $m) {
             $f=DATA_ROOT.'/uploads/'.basename($m['stored_name']);if (!is_file($f)) continue;
