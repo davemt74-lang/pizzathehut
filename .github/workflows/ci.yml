@@ -34,3 +34,33 @@ jobs:
       - name: Check PHP files for syntax errors
         run: |
           find . -name '*.php' -type f -print0 | xargs -0 -n1 php -l
+  deploy-archive:
+    name: Deployment ZIP and SHA-256
+    needs: source-validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Package tracked application files
+        run: |
+          set -eu
+          git ls-files | grep -Ev '^(\.github/|tests/|\.gitignore$)' > /tmp/pizza-lab-deploy-files.txt
+          test -s /tmp/pizza-lab-deploy-files.txt
+          zip -q pizza-lab-v1.5.2-deploy.zip -@ < /tmp/pizza-lab-deploy-files.txt
+          unzip -tq pizza-lab-v1.5.2-deploy.zip
+          unzip -Z1 pizza-lab-v1.5.2-deploy.zip | grep -q '^agent_chat.php$'
+          unzip -Z1 pizza-lab-v1.5.2-deploy.zip | grep -q '^batch_ai.php$'
+          unzip -Z1 pizza-lab-v1.5.2-deploy.zip | grep -q '^upgrade.php$'
+          if unzip -Z1 pizza-lab-v1.5.2-deploy.zip | grep -Eq '(^|/)(config\.php|\.env|private/uploads/)'; then
+            echo 'Forbidden secret or private upload included in release' >&2
+            exit 1
+          fi
+          sha256sum pizza-lab-v1.5.2-deploy.zip > pizza-lab-v1.5.2-deploy.sha256
+          sha256sum -c pizza-lab-v1.5.2-deploy.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pizza-lab-v1.5.2-deployment
+          path: |
+            pizza-lab-v1.5.2-deploy.zip
+            pizza-lab-v1.5.2-deploy.sha256
+          if-no-files-found: error
+          retention-days: 90
