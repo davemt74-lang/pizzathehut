@@ -34,6 +34,7 @@
  }
  mic.addEventListener('click',start);
  camera.addEventListener('click',()=>{stop();window.dispatchEvent(new Event('pizza-chat-camera-toggle'));});
+ window.addEventListener('pizza-chat-local-command',()=>{voiceQuestion=false;});
  window.addEventListener('pizza-chat-reply',e=>{
    if(!voiceQuestion)return;voiceQuestion=false;
    const text=String(e.detail?.text||'').trim().slice(0,1100);if(!text)return;

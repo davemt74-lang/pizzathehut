@@ -55,6 +55,8 @@ window.addEventListener('message',event=>{
  else if(data.type==='analysis'||data.type==='analysis-error')showAnalysis(data);
 });
 window.addEventListener('pizza-chat-camera-toggle',()=>panel.hidden?open():close());
+window.addEventListener('pizza-chat-camera-open',open);
+window.addEventListener('pizza-chat-camera-close',close);
 window.addEventListener('pizza-chat-photo-command',()=>{
  if(panel.hidden){setStatus('Open the camera, select a pizza test, and start tracking before saying “Pizza, take photo”.');return;}
  frame.contentWindow?.postMessage({channel:'pizza-lab:chat-control',type:'take-photo'},window.location.origin);

@@ -1,0 +1,20 @@
+<?php
+declare(strict_types=1);
+$root=dirname(__DIR__);
+$chat=file_get_contents($root.'/agent_chat.php');
+$api=file_get_contents($root.'/api.php');
+$cmd=file_get_contents($root.'/assets/agent_chat_commands.js');
+$cam=file_get_contents($root.'/assets/agent_chat_camera.js');
+$nav=file_get_contents($root.'/assets/agent_chat_nav.js');
+$assert=function(bool $b,string $name): void {if(!$b)throw new RuntimeException('FAIL: '.$name);};
+foreach(['id="chatNavToggle"','id="chatNavBackdrop"','id="chatNav"','id="chatNavClose"','aria-expanded="false"','inert hidden','id="chatMic"','id="chatCamera"'] as $fragment)$assert(str_contains($chat,$fragment),'Chat nav/footer: '.$fragment);
+foreach(['workdays.php','gallery.php','proposals.php','oven_layout.php','index.php?workspace=1#batches','index.php?workspace=1#recipes'] as $url)$assert(str_contains($chat,$url),'Menu link: '.$url);
+$assert(str_contains($chat,'assets/agent_chat_nav.js') && str_contains($chat,'assets/agent_chat_commands.js'),'Loaded navigation and commands');
+$assert(str_contains($chat,'pizzaChatCommands'),'Chat commands handled before Claude');
+$assert(str_contains($api,"'chatWorkdays'")&&str_contains($api,"'chatCreateWorkday'"),'Workday endpoints');
+$assert(str_contains($api,"'confirmed']??false")&&str_contains($api,"chatCreateWorkday"),'Workday explicit confirmation');
+$assert(str_contains($cmd,'confirmed:true')&&str_contains($cmd,'Confirm new workday'),'Visible confirmation gate');
+$assert(str_contains($cmd,'textContent')&&!str_contains($cmd,'innerHTML'),'Safe DOM text');
+$assert(str_contains($cam,'pizza-chat-camera-open')&&str_contains($cam,'pizza-chat-camera-close'),'In-chat camera controls');
+$assert(str_contains($nav,"e.key==='Escape'")&&str_contains($nav,'lastFocus'),'Accessible modal nav');
+echo "PASS: chat navigation and workday approval source controls\n";

@@ -1,11 +1,9 @@
-# Pizza Lab v1.5.9 — In-chat Camera Tracker
+# Pizza Lab v1.5.10 — Chat Navigation and Commands
 
-- Open/close live pizza camera directly from the sticky Agent Chat footer, without navigating away.
-- Reuse existing manual/assisted bounding-box tracker, authenticated image upload, cooking event logs, and Claude visual analysis.
-- Send a saved photo preview and Claude observation into the chat conversation with same-origin validated messages.
-- Support 'Pizza, take photo' through the chat microphone when the camera is active and a pizza test is selected.
-- Explicit camera start and selection are required; closing the panel releases camera/microphone tracks.
-- Only the protected embedded tracker may be framed by its own origin; all other pages stay frame-denied.
-- Keep an open-full-screen fallback for browsers that restrict embedded camera permissions.
-
-Source/CI checks do not replace live MySQL, iPhone Safari, or Claude API acceptance. No database migration is needed.
+- Hamburger in Agent Chat header; left slide-out navigation with backdrop, keyboard Escape/focus trapping and Super Admin-only team link.
+- Deterministic, safe chat commands for recipe search, batch selection, workday retrieval, in-chat camera and help. The footer microphone uses the same text-command pathway.
+- Workday creation requires explicit chat confirmation before making an authenticated, CSRF-protected API request.
+- Camera stays in the chat canvas, chat composer remains fixed, original pages continue as optional navigation destinations.
+- Restored missing experiment AI dependency so the existing experiment API can load; reviews are stored with an immutable evidence snapshot.
+- Added parser, UI safety, navigation contracts and packaging tests. No database schema migration.
+- Live MySQL, iPhone microphone/camera, and Claude API certification pending.
