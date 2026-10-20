@@ -9,6 +9,7 @@ require_once __DIR__.'/ai_experiments.php';
 require_once __DIR__.'/batch_ai.php';
 require_once __DIR__.'/ai_proposals.php';
 require_once __DIR__.'/cook_activity_lib.php';
+require_once __DIR__.'/workday_context_lib.php';
 header('Cache-Control: no-store');
 try {
     $action=(string)($_GET['action'] ?? $_POST['action'] ?? '');
@@ -25,6 +26,12 @@ try {
             $id=(int)($_GET['evidence_id']??0);row_owned('evidence',$id);
             $history=query('SELECT a.id,a.event_type,a.event_class,a.source,a.elapsed_seconds,a.media_id,a.occurred_at,u.display_name AS chef FROM oven_cook_activity a JOIN users u ON u.id=a.created_by_user_id WHERE a.evidence_id=? ORDER BY a.id DESC LIMIT 150',[$id])->fetchAll();
             json_out(['ok'=>true,'events'=>$history]);
+        }
+        if ($action==='chatWorkdayContext') {
+            $date=(string)($_GET['date']??'');
+            $dayId=isset($_GET['workday_id'])?filter_var($_GET['workday_id'],FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]):null;
+            if($dayId===false)fail('Invalid workday selection.');
+            json_out(['ok'=>true,'context'=>lab_chat_workday_context($date,$dayId===null?null:(int)$dayId)]);
         }
         if ($action==='chatWorkdays') {
             $days=query('SELECT id,work_date,title FROM workdays ORDER BY work_date DESC,id DESC LIMIT 25')->fetchAll();
