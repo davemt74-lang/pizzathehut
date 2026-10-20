@@ -69,3 +69,6 @@ node tests/verify-chat-cooking.js
 php tests/verify-chat-cooking.php
 
 php tests/verify-exact-scan.php
+
+php tests/verify-kitchen-timers.php
+node --check assets/agent_chat_timers.js
