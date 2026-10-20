@@ -3,6 +3,18 @@ const $=s=>document.querySelector(s), status=s=>{$('#trackerStatus').textContent
 let stream=null,voice=null,voiceEnabled=false,working=false,detectorTimer=null,suppressUntil=0;
 let box={x:.26,y:.25,w:.48,h:.48,source:'manual',confidence:'low'};
 const video=$('#camera');
+function notifyChat(payload){
+ if(!window.PIZZA_TRACKER.embedded||window.parent===window)return;
+ window.parent.postMessage({channel:'pizza-lab:camera',...payload},window.location.origin);
+}
+// Only trusted same-origin chat may request capture or shutdown; no unattended photos.
+window.addEventListener('message',e=>{
+ if(!window.PIZZA_TRACKER.embedded||e.source!==window.parent||e.origin!==window.location.origin)return;
+ if(e.data?.channel!=='pizza-lab:chat-control')return;
+ if(e.data.type==='take-photo')takePhoto('voice_command');
+ else if(e.data.type==='stop')stop();
+ else if(e.data.type==='pause-voice')stopVoice();
+});
 function setBox(b){box={...box,...b};const target=$('#target');target.setAttribute('x',box.x*1000);target.setAttribute('y',box.y*1000);target.setAttribute('width',box.w*1000);target.setAttribute('height',box.h*1000);target.setAttribute('stroke',box.source==='local'?'#c8f1a5':'#ffd39e');const bw=$('#boxWidth'),bh=$('#boxHeight');if(bw&&document.activeElement!==bw)bw.value=Math.round(box.w*100);if(bh&&document.activeElement!==bh)bh.value=Math.round(box.h*100);}
 function heard(msg){status(msg);}
 function announce(msg){if(window.speechSynthesis){suppressUntil=Date.now()+5000;window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(msg);u.rate=.95;window.speechSynthesis.speak(u);}}
@@ -26,9 +38,10 @@ async function takePhoto(trigger='manual'){if(working)return;if(!stream||video.r
  try{await recordTrackerActivity('photo_captured',trigger==='voice_command'?'voice_command':'camera',id,{media_id:upload.media_id});}catch(e){status('Photo saved but activity log failed: '+e.message);}
  $('#lastPhoto').innerHTML=`<img alt="Captured pizza evidence" src="media.php?id=${upload.media_id}" style="max-width:100%;border-radius:12px">`;
  $('#captureStatus').textContent=`Photo saved to pizza #${id} (box: ${box.source}, ${box.confidence} confidence).`;
+ notifyChat({type:'photo',media_id:upload.media_id,evidence_id:id,source:trigger==='voice_command'?'voice_command':'camera',confidence:box.confidence});
  announce('Pizza photo captured. Analysis starting.');$('#analysis').textContent='Analyzing with Claude…';
- try{const a=await api('analyze',{evidence_id:id,kind:'live'});let result=a.analysis||{};try{await recordTrackerActivity('analysis_complete','system',id);if(result.turn_now)await recordTrackerActivity('visual_turn_suggestion','ai_suggestion',id);}catch(e){status('Analysis saved but activity log failed: '+e.message);}$('#analysis').innerHTML=`<h3>Claude observation</h3><p>${esc(result.summary||'No summary')}</p><p class="small">Confidence: ${esc(result.confidence||'unknown')}</p><ul>${(result.suggestions||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`;announce('Pizza analysis complete.');}
- catch(e){$('#analysis').textContent='Photo saved. Analysis not completed: '+e.message;announce('Photo saved. Analysis unavailable.');}
+ try{const a=await api('analyze',{evidence_id:id,kind:'live'});let result=a.analysis||{};try{await recordTrackerActivity('analysis_complete','system',id);if(result.turn_now)await recordTrackerActivity('visual_turn_suggestion','ai_suggestion',id);}catch(e){status('Analysis saved but activity log failed: '+e.message);}$('#analysis').innerHTML=`<h3>Claude observation</h3><p>${esc(result.summary||'No summary')}</p><p class="small">Confidence: ${esc(result.confidence||'unknown')}</p><ul>${(result.suggestions||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`;notifyChat({type:'analysis',media_id:upload.media_id,evidence_id:id,summary:String(result.summary||''),confidence:String(result.confidence||'unknown')});announce('Pizza analysis complete.');}
+ catch(e){$('#analysis').textContent='Photo saved. Analysis not completed: '+e.message;notifyChat({type:'analysis-error',media_id:upload.media_id,evidence_id:id,error:String(e.message||'Unavailable')});announce('Photo saved. Analysis unavailable.');}
  }catch(e){$('#captureStatus').textContent='Capture failed: '+e.message;heard(e.message);announce('Pizza photo could not be saved.');}finally{working=false;$('#takePhoto').disabled=false;}}
 function interpretVoice(transcript){const v=String(transcript||'').toLowerCase().replace(/[^a-z ]/g,' ').replace(/\s+/g,' ').trim();if(!stream||Date.now()<suppressUntil)return;const wake=String(window.PIZZA_TRACKER.wake||'pizza').toLowerCase().trim();if(v.startsWith(wake+' ') && /^(take (a )?photo|capture (a )?photo|take (a )?picture)$/.test(v.slice(wake.length).trim())){takePhoto('voice_command');}}
 function startVoice(){if(!stream){heard('Start the pizza tracker first.');return;}const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;if(!Recognition){heard('Voice recognition unavailable; use Take photo + analyze.');return;}if(voiceEnabled)return;voiceEnabled=true;voice=new Recognition();voice.lang='en-US';voice.continuous=true;voice.interimResults=false;voice.onresult=e=>{for(let i=e.resultIndex;i<e.results.length;i++)if(e.results[i].isFinal)interpretVoice(e.results[i][0].transcript);};voice.onend=()=>{if(voiceEnabled&&stream&&document.visibilityState==='visible')setTimeout(()=>{if(voiceEnabled){try{voice.start();}catch{voiceEnabled=false;}}},500);};voice.onerror=e=>{if(['not-allowed','service-not-allowed','audio-capture'].includes(e.error)){voiceEnabled=false;heard('Microphone denied or unavailable.');}};try{voice.start();heard('Listening for “Pizza, take photo”.');}catch(e){voiceEnabled=false;heard('Cannot enable microphone: '+e.message);}}
