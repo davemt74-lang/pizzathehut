@@ -141,3 +141,11 @@ Back up your database, `private/uploads`, and `config.php`. Upload the new files
 ## v1.5: Experiments
 
 The Experiments & analytics tab supports an unlimited number of recipes. Create an experiment from any source recipe, specify the objective and hypothesis, and the app creates a linked editable variation containing the source formula and its step timeline. Record dough batches and pizza evidence against the variation, then compare the source and variation using measured crispness, rise, bottom color and test counts. Correlation does not prove causation; missing readings stay null. Existing recipe and batch history is untouched. Full details in RELEASE_NOTES.md.
+
+## v1.5.4 — Shift/workday tracking and photo comparison
+
+**Workdays:** open `workdays.php` to create a dated shift, record the specific batch and action with its actual time, and link each pizza test baked that day. Batches can appear on multiple days; each pizza has at most one linked workday. Workdays deliberately do not infer usage from batch creation timestamps. New rows and historical unlinked pizzas remain unassumed. Team members and Super Admin have equal production recording access.
+
+**Crust comparison:** open `visual_compare.php` to choose two pizza tests and a matching camera angle; compare actual photos and optional scored measurements. A user may request a rate-limited Claude visual comparison that preserves an evidence snapshot and the historical recipe used by each batch. Without a photo for both selected pizzas or without a configured server-side key, no AI call occurs. Claude can identify visible patterns, but not objectively determine taste, internal temperature or physical crispness from photographs.
+
+**Installation:** `schema.sql` includes the four new tables; existing deployments should back up data, deploy without replacing `config.php` or uploads, and run `upgrade.php` as Super Admin. Historical pizza records are not assigned an invented shift or owner.

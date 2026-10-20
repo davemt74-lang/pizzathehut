@@ -314,3 +314,56 @@ CREATE TABLE IF NOT EXISTS ai_recipe_proposals (
  CONSTRAINT fk_proposal_decider FOREIGN KEY (decided_by_user_id) REFERENCES users(id) ON DELETE RESTRICT,
  CONSTRAINT fk_proposal_experiment FOREIGN KEY (approved_experiment_id) REFERENCES pizza_experiments(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
+
+-- v1.5.4 workday records: a batch may span several days; pizza tests belong to one recorded day.
+CREATE TABLE IF NOT EXISTS workdays (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ work_date DATE NOT NULL,
+ title VARCHAR(160) NOT NULL DEFAULT 'Pizza production',
+ notes TEXT NULL,
+ created_by_user_id BIGINT UNSIGNED NOT NULL,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ INDEX idx_workday_date (work_date,id),
+ CONSTRAINT fk_workday_creator FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS workday_batch_events (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ workday_id BIGINT UNSIGNED NOT NULL,
+ batch_id BIGINT UNSIGNED NOT NULL,
+ activity ENUM('mixed','split','proofed','balled','baked','used','wasted','temperature','other') NOT NULL,
+ occurred_at DATETIME NOT NULL,
+ recorded_by_user_id BIGINT UNSIGNED NOT NULL,
+ notes VARCHAR(1000) NOT NULL DEFAULT '',
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ INDEX idx_wbe_workday (workday_id,occurred_at),
+ INDEX idx_wbe_batch (batch_id,occurred_at),
+ CONSTRAINT fk_wbe_day FOREIGN KEY (workday_id) REFERENCES workdays(id) ON DELETE CASCADE,
+ CONSTRAINT fk_wbe_batch FOREIGN KEY (batch_id) REFERENCES dough_batches(id) ON DELETE RESTRICT,
+ CONSTRAINT fk_wbe_user FOREIGN KEY (recorded_by_user_id) REFERENCES users(id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS workday_pizzas (
+ evidence_id BIGINT UNSIGNED PRIMARY KEY,
+ workday_id BIGINT UNSIGNED NOT NULL,
+ recorded_by_user_id BIGINT UNSIGNED NOT NULL,
+ linked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ INDEX idx_workday_pizzas_day (workday_id,evidence_id),
+ CONSTRAINT fk_wp_evidence FOREIGN KEY (evidence_id) REFERENCES evidence(id) ON DELETE CASCADE,
+ CONSTRAINT fk_wp_workday FOREIGN KEY (workday_id) REFERENCES workdays(id) ON DELETE CASCADE,
+ CONSTRAINT fk_wp_user FOREIGN KEY (recorded_by_user_id) REFERENCES users(id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
+-- v1.5.4 comparison reviews are evidence snapshots, not authoritative measurements.
+CREATE TABLE IF NOT EXISTS visual_comparisons (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ evidence_a_id BIGINT UNSIGNED NOT NULL,
+ evidence_b_id BIGINT UNSIGNED NOT NULL,
+ view_angle ENUM('top','bottom','side','crumb') NOT NULL,
+ created_by_user_id BIGINT UNSIGNED NOT NULL,
+ model VARCHAR(100) NOT NULL,
+ snapshot_json LONGTEXT NOT NULL,
+ analysis_json LONGTEXT NOT NULL,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ INDEX idx_visual_pair (evidence_a_id,evidence_b_id,id),
+ CONSTRAINT fk_vc_evidence_a FOREIGN KEY (evidence_a_id) REFERENCES evidence(id) ON DELETE RESTRICT,
+ CONSTRAINT fk_vc_evidence_b FOREIGN KEY (evidence_b_id) REFERENCES evidence(id) ON DELETE RESTRICT,
+ CONSTRAINT fk_vc_user FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
