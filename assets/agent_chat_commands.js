@@ -15,6 +15,8 @@ function parseCommand(raw){
  if(m)return{type:'kitchen',action_type:'fridge_temp',location_label:(m[1]||'Refrigerator').trim(),temperature_f:Number(m[2])};
  m=input.match(/^(?:pizza[, ]+)?(?:we (?:just )?|i (?:just )?)?(?:balled|ball) (?:the )?batch ([A-Za-z0-9-]{3,18})$/i);
  if(m)return{type:'kitchen',action_type:'batch_balled',term:m[1]};
+ m=input.match(/^(?:pizza[, ]+)?(pause|resume|reset) (?:the )?(?:pizza )?timer (?:for )?pizza #?(\\d{1,9})$/i);
+ if(m)return{type:'cook',event_type:'timer_'+(m[1].toLowerCase()==='pause'?'paused':m[1].toLowerCase()==='resume'?'resumed':'reset'),evidence_id:Number(m[2])};
  m=input.match(/^(?:pizza[, ]+)?(start|stop) (?:the )?(?:pizza )?timer (?:for )?pizza #?(\d{1,9})$/i);
  if(m)return{type:'cook',event_type:m[1].toLowerCase()==='start'?'timer_started':'timer_stopped',evidence_id:Number(m[2])};
  m=input.match(/^(?:pizza[, ]+)?(?:i |we )?(?:just )?(rotated|rotate|pulled back|pull back|finished|finish) pizza #?(\d{1,9})$/i);
@@ -73,14 +75,14 @@ async function run(cmd){
    if(!Number.isSafeInteger(id)||id<1||!(window.PIZZA_CHAT_PIZZA_IDS||[]).includes(id)){
      card('Pizza not selected','Use a pizza test number from your recorded evidence. Nothing was logged.');return true;
    }
-   const labels={timer_started:'Start pizza timer',timer_stopped:'Stop pizza timer',rotation_confirmed:'Confirm actual rotation',pull_back_confirmed:'Confirm actual pull-back',pizza_finished:'Finish pizza'};
-   const source=window.pizzaChatCommandSource||'manual';const action={action:'cookActivity',evidence_id:id,event_type:cmd.event_type,source,client_event_id:(window.crypto?.randomUUID?.()||('pizza_'+Date.now()+'_'+Math.random().toString(36).slice(2)))};
+   const labels={timer_started:'Start pizza timer',timer_stopped:'Stop pizza timer',timer_paused:'Pause pizza timer',timer_resumed:'Resume pizza timer',timer_reset:'Reset pizza timer',rotation_confirmed:'Confirm actual rotation',pull_back_confirmed:'Confirm actual pull-back',pizza_finished:'Finish pizza'};
+   const source=/^timer_(paused|resumed|reset)$/.test(cmd.event_type)?'manual':(window.pizzaChatCommandSource||'manual');const action={action:'cookActivity',evidence_id:id,event_type:cmd.event_type,source,client_event_id:(window.crypto?.randomUUID?.()||('pizza_'+Date.now()+'_'+Math.random().toString(36).slice(2)))};
    const c=card('Confirm cooking action',labels[cmd.event_type]+' · Pizza #'+id+'. An agent reminder is not a completed movement. Nothing saved yet.');
    const row=element('div');row.className='coach-confirm',approve=element('button','Confirm'),cancel=element('button','Cancel');approve.type=cancel.type='button';approve.className='primary';
    approve.addEventListener('click',async()=>{if(approve.disabled)return;approve.disabled=cancel.disabled=true;try{
      const response=await fetch('api.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF},body:JSON.stringify(action)});
      const data=await response.json();if(!response.ok||!data.ok)throw Error(data.error||'Cooking event unavailable');
-     c.append(element('p','Saved cooking action #'+(data.id??data.activity_id??'—')+'.'));row.remove();pending=null;
+     c.append(element('p','Saved cooking action #'+(data.id??data.activity_id??'—')+'.'));window.dispatchEvent(new Event('pizza-timers-updated'));row.remove();pending=null;
    }catch(e){c.append(element('p',e.message));approve.disabled=cancel.disabled=false;}});
    cancel.addEventListener('click',()=>{row.remove();c.append(element('p','Cancelled, no cooking event saved.'));pending=null;});
    row.append(approve,cancel);c.append(row);pending=row;return true;
