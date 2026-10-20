@@ -12,6 +12,7 @@ require_once __DIR__.'/cook_activity_lib.php';
 require_once __DIR__.'/kitchen_timer_lib.php';
 require_once __DIR__.'/kitchen_reminder_lib.php';
 require_once __DIR__.'/chat_kitchen_lib.php';
+require_once __DIR__.'/chat_batch_guide_lib.php';
 require_once __DIR__.'/workday_context_lib.php';
 header('Cache-Control: no-store');
 try {
@@ -30,6 +31,22 @@ try {
             $id=(int)($_GET['evidence_id']??0);row_owned('evidence',$id);
             $history=query('SELECT a.id,a.event_type,a.event_class,a.source,a.elapsed_seconds,a.media_id,a.occurred_at,u.display_name AS chef FROM oven_cook_activity a JOIN users u ON u.id=a.created_by_user_id WHERE a.evidence_id=? ORDER BY a.id DESC LIMIT 150',[$id])->fetchAll();
             json_out(['ok'=>true,'events'=>$history]);
+        }
+        if ($action==='chatBatchPlan') {
+            $id=$_GET['recipe_id']??null;
+            if($id!==null){
+                $id=filter_var($id,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+                if($id===false)fail('Invalid recipe identifier.');
+            }
+            json_out(['ok'=>true,'plan'=>lab_chat_batch_public_plan(lab_chat_batch_plan($id))]);
+        }
+        if ($action==='chatBatchSessions') {
+            json_out(['ok'=>true,'sessions'=>lab_chat_batch_active(auth())]);
+        }
+        if ($action==='chatBatchSession') {
+            $id=filter_var($_GET['session_id']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+            if(!$id)fail('Select a batch session.');
+            json_out(['ok'=>true,'session'=>lab_chat_batch_record($id,auth())]);
         }
         if ($action==='chatWorkdayContext') {
             $date=(string)($_GET['date']??'');
@@ -110,6 +127,8 @@ try {
     if ($action==='generateProposal') { json_out(['ok'=>true,...lab_generate_proposal($d)]); }
     if ($action==='decideProposal') { json_out(['ok'=>true,...lab_decide_proposal($d)]); }
     if ($action==='kitchenReminderPoll') { json_out(['ok'=>true,'reminders'=>lab_reminder_poll(auth())]); }
+    if ($action==='chatBatchStart') { json_out(['ok'=>true,...lab_chat_batch_start($d,auth())]); }
+    if ($action==='chatBatchStep') { json_out(['ok'=>true,...lab_chat_batch_step($d,auth())]); }
     if ($action==='chatKitchenAction') {json_out(['ok'=>true,...lab_kitchen_action_save($d)]);}
     if ($action==='chatCreateWorkday') {
         require_once __DIR__.'/workday_lib.php';
