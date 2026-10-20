@@ -78,7 +78,7 @@ function lab_reminder_poll(int $userId): array {
         foreach($available as $row){
             query("INSERT IGNORE INTO kitchen_reminder_receipts (reminder_id,user_id,claimed_at)
                 VALUES (?,?,UTC_TIMESTAMP(6))",[(int)$row['id'],$userId]);
-            if((int)db()->query('SELECT ROW_COUNT()')->fetchColumn())===1){
+            if(((int)db()->query('SELECT ROW_COUNT()')->fetchColumn())===1){
                 $claimed[]=[
                     'id'=>(int)$row['id'],'evidence_id'=>(int)$row['evidence_id'],
                     'kind'=>$row['reminder_type'],'message'=>lab_reminder_text($row['reminder_type'],(string)$row['label']),
