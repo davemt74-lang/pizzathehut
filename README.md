@@ -1,3 +1,13 @@
+# Pizza Lab v1.5.11 — Minimal Chat + Team Account Menu
+
+The home screen remains one **chat-first page**. Its header has a hamburger button for existing tools and a compact account dropdown. The fixed composer has microphone, camera, text and Send. Camera tracking stays inside chat. Recipes, workdays, ovens, gallery and admin screens remain available from the hamburger.
+
+Account dropdown actions open on-page dialogs: **My Profile**, **Voice Settings**, **Change Password**, and **Log out**. Users may update display name and email (email change requires current password), password, wake phrase, recognition locale, spoken voice/rate, and timer alias. Only Super Admin can manage team accounts or shared Claude keys. All writes are authenticated and CSRF checked; role permissions never come from the browser.
+
+No schema migration. Preserve `config.php` and `private/uploads` when deploying. Live MySQL, iPhone voice and Claude API tests remain production acceptance tasks.
+
+---
+
 # Pizza Lab v1.5.6 — Cooking Performance Heat Map
 
 The **Cooking heat map** workspace links pizza tests to a measured oven layout and allows chefs to log launch, initial puff, pull-back, rotation, finish, and position-check events with **actual on-floor location**. Each event can optionally include elapsed seconds, an actual infrared stone-temperature reading, and notes. One pizza test is linked to one oven layout; multiple movements within that oven are retained with exact recorded positions and the zone name at the time of capture. Changes to zone names do not rewrite historical event labels.
