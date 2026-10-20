@@ -53,3 +53,6 @@ php tests/verify-upgrade-preflight.php
 node tests/verify-voice-recovery.js
 
 php tests/verify-camera-recovery.php
+
+node tests/verify-camera-runtime.js
+php tests/verify-upgrade-preservation.php

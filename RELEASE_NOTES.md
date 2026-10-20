@@ -1,5 +1,22 @@
 # Pizza Lab v1.5.13 — Kitchen Reliability & Acceptance
 
+## C. Camera lifecycle and evidence recovery (PR #21)
+
+- A late camera permission grant cannot restart a stopped tracker; unexpected hardware track-end and background transitions release camera access.
+- In-flight capture fetches use AbortController; closing the tracker cancels requests. A request already committed by the server may have saved a photo, so the UI explicitly directs the chef to review existing photos before retrying.
+- Voice recognition does not silently auto-restart after browser shutdown; the chef must enable it again.
+
+## B. Kitchen microphone reliability (PR #20)
+
+- One active push-to-talk session at a time. Stale browser speech callbacks cannot stop a later session.
+- Leaving the active page stops capture, and speech response callbacks are guarded after interruption. Voice/photo command handoff stays intact.
+
+## D. Certification extension
+
+- Node simulated camera-lifecycle regression exercises late permission grants, disconnected tracks and cancellation after upload begins.
+- Disposable MySQL upgrade smoke preserves seeded pizza evidence scores and photo metadata while testing backup confirmation.
+- CI is not a physical-device or production restoration guarantee. Real iPhone voice/camera and live Claude requests must be accepted separately.
+
 ## A. Upgrade safety and repeatable CI
 - Upgrade.php now requires a deliberate Super Admin backup acknowledgement before any schema changes; retains authenticated CSRF checks.
 - Disposable MySQL and authenticated HTTP CI verify rejection without confirmation and idempotent schema upgrade after acknowledgement.
