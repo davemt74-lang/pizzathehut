@@ -19,3 +19,7 @@ php tests/verify-coach.php
 
 php tests/verify-proposals.php
 php tests/verify-workdays.php
+
+php tests/verify-readiness-oven.php
+node --check assets/oven_layout.js
+node --check assets/pizza_tracker.js

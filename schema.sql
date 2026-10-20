@@ -367,3 +367,68 @@ CREATE TABLE IF NOT EXISTS visual_comparisons (
  CONSTRAINT fk_vc_evidence_b FOREIGN KEY (evidence_b_id) REFERENCES evidence(id) ON DELETE RESTRICT,
  CONSTRAINT fk_vc_user FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
+
+-- v1.5.5: physical oven dimensions and manually observed heat zones.
+-- x/y are normalized to the ellipse bounding rectangle (0=west/north, 1=east/south).
+CREATE TABLE IF NOT EXISTS oven_layouts (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ name VARCHAR(140) NOT NULL,
+ north_south_in DECIMAL(8,2) NOT NULL,
+ east_west_in DECIMAL(8,2) NOT NULL,
+ internal_height_in DECIMAL(8,2) NOT NULL,
+ fire_x DECIMAL(6,4) NOT NULL,
+ fire_y DECIMAL(6,4) NOT NULL,
+ zones_json LONGTEXT NOT NULL,
+ created_by_user_id BIGINT UNSIGNED NOT NULL,
+ updated_by_user_id BIGINT UNSIGNED NOT NULL,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ CONSTRAINT fk_oven_creator FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+ CONSTRAINT fk_oven_editor FOREIGN KEY (updated_by_user_id) REFERENCES users(id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS oven_zone_readings (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ oven_layout_id BIGINT UNSIGNED NOT NULL,
+ zone_key VARCHAR(28) NOT NULL,
+ stone_f DECIMAL(7,2) NOT NULL,
+ observed_at DATETIME NOT NULL,
+ recorded_by_user_id BIGINT UNSIGNED NOT NULL,
+ notes VARCHAR(600) NOT NULL DEFAULT '',
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ INDEX idx_oven_zone_temp (oven_layout_id,zone_key,observed_at),
+ CONSTRAINT fk_oven_zone_layout FOREIGN KEY (oven_layout_id) REFERENCES oven_layouts(id) ON DELETE CASCADE,
+ CONSTRAINT fk_oven_zone_user FOREIGN KEY (recorded_by_user_id) REFERENCES users(id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS dough_readiness_checks (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ batch_id BIGINT UNSIGNED NOT NULL,
+ container_id BIGINT UNSIGNED NULL,
+ observed_at DATETIME NOT NULL,
+ dough_temp_f DECIMAL(6,2) NULL,
+ rise_score TINYINT UNSIGNED NULL COMMENT '1-5 visual expansion rating, subjective',
+ handling ENUM('unknown','tight','balanced','slack','sticky','tearing') NOT NULL DEFAULT 'unknown',
+ notes VARCHAR(1500) NOT NULL DEFAULT '',
+ recorded_by_user_id BIGINT UNSIGNED NOT NULL,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ INDEX idx_readiness_batch (batch_id,observed_at),
+ CONSTRAINT fk_readiness_batch FOREIGN KEY (batch_id) REFERENCES dough_batches(id) ON DELETE CASCADE,
+ CONSTRAINT fk_readiness_container FOREIGN KEY (container_id) REFERENCES batch_containers(id) ON DELETE SET NULL,
+ CONSTRAINT fk_readiness_author FOREIGN KEY (recorded_by_user_id) REFERENCES users(id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS pizza_tracker_boxes (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ media_id BIGINT UNSIGNED NOT NULL UNIQUE,
+ evidence_id BIGINT UNSIGNED NOT NULL,
+ x_norm DECIMAL(6,4) NOT NULL,
+ y_norm DECIMAL(6,4) NOT NULL,
+ width_norm DECIMAL(6,4) NOT NULL,
+ height_norm DECIMAL(6,4) NOT NULL,
+ source ENUM('ai','manual','local') NOT NULL DEFAULT 'manual',
+ confidence ENUM('low','medium','high') NOT NULL DEFAULT 'low',
+ created_by_user_id BIGINT UNSIGNED NOT NULL,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ INDEX idx_tracker_evidence (evidence_id,created_at),
+ CONSTRAINT fk_tracker_media FOREIGN KEY (media_id) REFERENCES media(id) ON DELETE CASCADE,
+ CONSTRAINT fk_tracker_evidence FOREIGN KEY (evidence_id) REFERENCES evidence(id) ON DELETE CASCADE,
+ CONSTRAINT fk_tracker_author FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
