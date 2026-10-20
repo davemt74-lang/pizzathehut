@@ -1,3 +1,17 @@
+# Pizza Lab v1.5.16C — Conversational Dough Production
+
+The existing Agent Chat can optionally start a recipe-based production session: **"Pizza, let's make a batch of dough, main recipe."** The server resolves the single recipe marked **current**. If there are zero or multiple current recipes, the chef chooses explicitly. Recipe ingredient weights and process instructions come directly from stored formula records (unknown values stay unknown); no automatic scaling or guessing.
+
+Before creating a batch, Agent Chat displays the recipe and requires a **Create batch** confirmation. Each new batch gets a unique code, attributes its creator/maker to the signed-in chef, and freezes the recipe and ordered steps. A client request ID protects against duplicate submissions and conflicting replay, including retries after losing a response. If the saved recipe changes between preview and confirmation, the action is rejected and the chef must review the updated plan.
+
+The chef can say **"next step"**, **"step done"**, **"resume batch"**, or **"continue batch PL-XXXXXX"**. Recorded steps require a second explicit confirmation; optional text observations are recorded with the actor/source. The session and step history survive reloads, and concurrently submitted completions cannot skip steps. Multiple active sessions require choosing the right batch; the agent never guesses. The guide is an **optional compact chat panel**, not the primary interface or an automatic recipe wizard.
+
+A confirmed statement is not photographic proof or a measured temperature. Automated alerts/timers remain as in v1.5.16B; automatic recipe timers and photo-proof workflows are not part of Section C. Existing batches and formulas are not rewritten. Team members can access normal shared batch data but conversational guide sessions are scoped to the owner account.
+
+**Upgrade:** Back up MySQL, `config.php`, and private uploads. Preserve those files, deploy the new ZIP, and run `upgrade.php` as Super Admin to add `chat_batch_sessions` and `chat_batch_step_actions` (idempotent). This standalone Pizza Lab version has no integration with Gelato.
+
+---
+
 # Pizza Lab v1.5.16B — Foreground Kitchen Reminders
 
 The agent now issues one advisory kitchen check per active pizza and milestone when a chef has explicitly supplied a cooking time, for example **"Pizza, start timer for pizza #12 for 90 seconds"**. It suggests a rotation check near 40% of planned cook time, a pull-back check at 75%, and a doneness/finish check at 100%. These percentages are generic **checkpoints**, not validated best cooking times for every oven. The chef must physically inspect and confirm actual actions. The app makes no measurements or physical movement claims.
