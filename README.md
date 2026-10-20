@@ -1,3 +1,15 @@
+# Pizza Lab v1.5.16D — Voice and Kitchen Continuity
+
+Section D extends the *optional* dough production flow inside Agent Chat without turning it into the primary interface. The chat now **loads its batch workflow script**, fixing a missing script link in the previous release. It supports spoken requests like **"Pizza, read the current step"**, **"read ingredients"**, **"step done"**, and—only after a specific pending confirmation—**"confirm step"**. Starting a batch by voice similarly previews a saved recipe and requires a separate **"confirm batch creation"** command or a deliberate button press. Saying "yes" alone never modifies the database.
+
+Saved recipe/process steps remain server-owned, attributed and reload-safe. Every physical-step confirmation performs a fresh server read before attempting a write; another device changing the step makes the pending action stale. Client event IDs prevent repeats. **Leaving the page, hiding it, or waiting over two minutes cancels unsubmitted confirmations**; users resume from the last confirmed database step, not a guessed step or reconstructed voice command. The guide offers explicit buttons to read instructions/ingredients aloud using the existing single speech controller. Speech is interrupted when the microphone starts or the page is hidden; narration never starts automatically on a reload.
+
+Browser-based speech recognition and synthesis depend on HTTPS, permissions, actual browser support and user gesture. A tap is still required to reactivate the mic after backgrounding; **no always-listening wake word, locked-iPhone alerts, background voice, or guaranteed speech playback** is claimed. Voice capture errors fall back to visible text in chat. The agent never treats a spoken intention as proof of a physical step or temperature measurement.
+
+The v1.5.16D upgrade introduces no new tables beyond A–C. For existing deployments, back up the database, `config.php` and private uploads; preserve those files and apply `upgrade.php` if updating from an earlier release. Gelato remains entirely independent.
+
+---
+
 # Pizza Lab v1.5.16C — Conversational Dough Production
 
 The existing Agent Chat can optionally start a recipe-based production session: **"Pizza, let's make a batch of dough, main recipe."** The server resolves the single recipe marked **current**. If there are zero or multiple current recipes, the chef chooses explicitly. Recipe ingredient weights and process instructions come directly from stored formula records (unknown values stay unknown); no automatic scaling or guessing.
