@@ -158,10 +158,16 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         if (!preg_match('/CREATE TABLE IF NOT EXISTS pizza_experiments \(.*?\) ENGINE=InnoDB;/s',$experimentSchema,$experimentMatch)) throw new RuntimeException('Experiment schema missing');
         db()->exec($experimentMatch[0]);
         $results[]='Recipe-agnostic experiment registry ready';
+        if (!preg_match('/CREATE TABLE IF NOT EXISTS experiment_ai_reviews \(.*?\) ENGINE=InnoDB;/s',$experimentSchema,$aiMatch)) throw new RuntimeException('AI review schema missing');
+        db()->exec($aiMatch[0]);
+        $results[]='AI experiment review history ready';
         require_once __DIR__.'/recipe_templates.php';
         // Seeder does not overwrite custom recipes, edited templates or batch snapshots.
         foreach(pizza_lab_seed_recipes(db()) as $message)$results[]=$message;
         foreach(pizza_lab_upgrade_default_stonefellows_process(db()) as $message)$results[]=$message;
+        if (!preg_match('/CREATE TABLE IF NOT EXISTS ai_recipe_proposals \(.*?\) ENGINE=InnoDB;/s',$schema,$proposalTable)) throw new RuntimeException('AI proposal schema missing');
+        db()->exec($proposalTable[0]);
+        $results[]='v1.5.3 AI proposal approval registry ready';
         $results[]='v1.4.1 batch maker attribution and role-aware access verified';
     } catch (Throwable $e) {
         error_log('Pizza Lab upgrade failure: '.$e->getMessage());
