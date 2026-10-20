@@ -46,7 +46,10 @@ function lab_kitchen_awareness(int $userId): array {
         $id=(int)$t['evidence_id'];
         $last=query("SELECT a.event_type,a.source,a.event_class,a.occurred_at
           FROM oven_cook_activity a
-          WHERE a.evidence_id=? AND a.event_class='observed'
+          WHERE a.evidence_id=?
+            AND a.event_type IN ('rotation_confirmed','pull_back_confirmed','pizza_finished')
+            AND a.id>(SELECT COALESCE(MAX(x.id),0) FROM oven_cook_activity x
+                      WHERE x.evidence_id=a.evidence_id AND x.event_type='timer_started')
           ORDER BY a.id DESC LIMIT 1",[$id])->fetch(PDO::FETCH_ASSOC)?:null;
         $alerts=query("SELECT r.reminder_type,r.created_at
           FROM kitchen_timer_reminders r
@@ -63,7 +66,7 @@ function lab_kitchen_awareness(int $userId): array {
             'elapsed_seconds'=>(int)floor($elapsed/1000),
             'planned_target_seconds'=>$target,
             'planned_time_reached'=>$target===null?null:$elapsed >= $target*1000,
-            'last_recorded_physical_event'=>$last,
+            'last_confirmed_physical_action_this_run'=>$last,
             'advisory_reminders_emitted'=>$alerts
         ];
     }
