@@ -36,3 +36,5 @@ node tests/verify-chat-navigation.js
 php tests/verify-chat-navigation.php
 node --check assets/agent_chat_account.js
 php tests/verify-account.php
+
+php tests/verify-conversation.php
