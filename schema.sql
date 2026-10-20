@@ -486,3 +486,29 @@ CREATE TABLE IF NOT EXISTS oven_cook_activity (
  CONSTRAINT fk_activity_media FOREIGN KEY (media_id) REFERENCES media(id) ON DELETE SET NULL,
  CONSTRAINT fk_activity_user FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
+
+-- v1.5.15: confirmed and idempotent conversational kitchen observations
+CREATE TABLE IF NOT EXISTS chat_kitchen_actions (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ user_id BIGINT UNSIGNED NOT NULL,
+ client_event_id VARCHAR(64) NOT NULL,
+ action_type ENUM('dough_temp','fridge_temp','batch_balled') NOT NULL,
+ source ENUM('manual','voice_command') NOT NULL,
+ batch_id BIGINT UNSIGNED NULL,
+ measured_f DECIMAL(6,2) NULL,
+ environment_label VARCHAR(120) NULL,
+ observed_at DATETIME NOT NULL,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ UNIQUE KEY uniq_chat_action (user_id,client_event_id),
+ INDEX idx_chat_action_batch (batch_id,observed_at),
+ CONSTRAINT fk_chat_action_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT,
+ CONSTRAINT fk_chat_action_batch FOREIGN KEY (batch_id) REFERENCES dough_batches(id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS kitchen_environment_readings (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ action_id BIGINT UNSIGNED NOT NULL UNIQUE,
+ location_label VARCHAR(120) NOT NULL,
+ temperature_f DECIMAL(6,2) NOT NULL,
+ observed_at DATETIME NOT NULL,
+ CONSTRAINT fk_kitchen_env_action FOREIGN KEY (action_id) REFERENCES chat_kitchen_actions(id) ON DELETE RESTRICT
+) ENGINE=InnoDB;

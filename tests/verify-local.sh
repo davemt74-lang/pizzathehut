@@ -61,3 +61,6 @@ php tests/verify-workday-context.php
 node --check assets/agent_chat_workday.js
 
 php tests/verify-workday-coaching.php
+
+php tests/verify-chat-kitchen.php
+node tests/verify-chat-kitchen.js
