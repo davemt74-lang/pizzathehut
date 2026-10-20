@@ -26,9 +26,22 @@ function lab_chat_workday_context(string $date, ?int $selectedId=null): array {
         $days=array_values(array_filter($days,static fn(array $d)=>(int)$d['id']===$selectedId));
         if(!$days)fail('Workday not found on selected date.',404);
     }
-    if(count($days)!==1)return lab_chat_workday_view($days,[],[]);
+    if(count($days)!==1){$view=lab_chat_workday_view($days,[],[]);$view['coaching']=lab_chat_workday_tip($view);return $view;}
     $id=(int)$days[0]['id'];
     $events=query('SELECT e.batch_id,b.batch_code,r.name AS recipe_name,e.activity FROM workday_batch_events e JOIN dough_batches b ON b.id=e.batch_id JOIN recipes r ON r.id=b.recipe_id WHERE e.workday_id=? ORDER BY e.id DESC LIMIT 120',[$id])->fetchAll();
     $pizzas=query('SELECT p.id,p.label,p.crispness_score FROM workday_pizzas w JOIN evidence p ON p.id=w.evidence_id WHERE w.workday_id=? ORDER BY p.id DESC LIMIT 100',[$id])->fetchAll();
-    return lab_chat_workday_view($days,$events,$pizzas);
+    $view=lab_chat_workday_view($days,$events,$pizzas);$view['coaching']=lab_chat_workday_tip($view);return $view;
+}
+
+/** Optional, deterministic coaching nudge. No Claude call, guessed measurements or record writes. */
+function lab_chat_workday_tip(array $view):array {
+    if($view['state']==='none')return ['note'=>'No workday is recorded for this date.','question'=>null,'batch_id'=>null];
+    if($view['state']!=='single')return ['note'=>'Choose a workday before evaluating today’s results.','question'=>null,'batch_id'=>null];
+    $batches=$view['batches'];
+    if(!$batches)return ['note'=>'Record the batch activity before assessing today’s dough.','question'=>null,'batch_id'=>null];
+    if(count($batches)!==1)return ['note'=>'Multiple batches are recorded. Choose the batch you want to discuss.','question'=>null,'batch_id'=>null];
+    $batch=$batches[0];$code=(string)$batch['batch_code'];
+    if(!$view['pizzas'])return ['note'=>'No pizza tests are linked to this workday; dough readiness needs actual observations.','question'=>'What recorded evidence is available for batch '.$code.' and what should I measure next?','batch_id'=>(int)$batch['id']];
+    if($view['rated_crispness']<3)return ['note'=>'Only '.(int)$view['rated_crispness'].' linked pizza(s) have crispness ratings. Avoid drawing conclusions from a small sample.','question'=>'What additional pizza measurements would help evaluate batch '.$code.'?','batch_id'=>(int)$batch['id']];
+    return ['note'=>'There are '.(int)$view['rated_crispness'].' rated linked pizzas. Compare outcomes with actual measurements, not assumed causes.','question'=>'Compare the recorded pizza outcomes for batch '.$code.' and suggest a controlled next test.','batch_id'=>(int)$batch['id']];
 }
