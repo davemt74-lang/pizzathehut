@@ -2,7 +2,6 @@
 declare(strict_types=1);
 /** User-initiated, source-grounded dough coach. Read-only except for saving attributed reports. */
 require_once __DIR__.'/batch_insights_lib.php';
-require_once __DIR__.'/ai_experiments.php';
 function lab_coach_scope(string $scope,mixed $id): array {
     if(!in_array($scope,['all','recipe','batch'],true))fail('Invalid analysis scope');
     if($scope==='all')return ['all',null];
@@ -31,10 +30,18 @@ function lab_coach_evidence(string $scope,?int $target): array {
     return ['scope'=>$scope,'target_id'=>$target,'total_matching_bounded_to_500'=>$total,'included_batches'=>count($rows),'selection'=>'Most recent 24 batches; up to 6 most recent pizzas and 20 latest temperature readings per included batch','summary'=>lab_insight_summary($rows),'limitations'=>lab_insight_observations($rows),'batches'=>$report];
 }
 function lab_coach_normalize(array $res): array {
-    $base=lab_ai_normalize($res);
-    $base['evidence_references']=array_values(array_slice(array_filter((array)($res['evidence_references']??[]),static fn($x)=>is_string($x)&&trim($x)!==''),0,5));
-    foreach($base['evidence_references'] as &$v)$v=function_exists('mb_substr')?mb_substr(trim($v),0,140):substr(trim($v),0,140);
-    return $base;
+    $str=static fn(mixed $v,int $max):string=>is_string($v)?(function_exists('mb_substr')?mb_substr(trim($v),0,$max):substr(trim($v),0,$max)):'';
+    $items=static function(mixed $values) use($str):array {
+        if(!is_array($values))return [];
+        $out=[];
+        foreach($values as $v){$line=$str($v,360);if($line!=='')$out[]=$line;if(count($out)>=5)break;}
+        return $out;
+    };
+    $confidence=(string)($res['confidence']??'low');
+    if(!in_array($confidence,['low','medium','high'],true))$confidence='low';
+    $normalized=['summary'=>$str($res['summary']??null,1200),'confidence'=>$confidence];
+    foreach(['measured_findings','hypotheses','next_tests','limitations','evidence_references'] as $key)$normalized[$key]=$items($res[$key]??null);
+    return $normalized;
 }
 function lab_coach_history(string $scope,?int $target,int $user): array {
     $r=query('SELECT id,question,analysis_json,model,created_at FROM batch_ai_reviews WHERE created_by_user_id=? AND scope=? AND target_id <=> ? ORDER BY id DESC LIMIT 12',[$user,$scope,$target])->fetchAll();
