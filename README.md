@@ -1,3 +1,11 @@
+# Pizza Lab v1.5.6 — Cooking Performance Heat Map
+
+The `heatmap.php` page links any pizza test to an oven layout and captures launch, puff, pull-back, rotation, finish, and position checks. The map overlays positions and human-entered IR readings; it never generates thermal measurements from the camera. Recorded ratings can be compared across zones, but the same pizza can visit several zones and correlation is not causation. Unentered readings stay unknown. Use 24-hour, 7-day, or 30-day report windows. All event times, positions, names and optional infrared temperatures are audit-attributed.
+
+Upgrade: back up the database, config.php and private uploads; deploy and run `upgrade.php` as Super Admin. The migration creates `oven_cook_sessions` and `oven_cook_events` without altering historical evidence. Mobile camera and real oven validation remain field-test items.
+
+---
+
 # Pizza Lab v1.5.3 — AI Experiment Proposals + Private Evidence Gallery
 
 **Recipe library:** Unlimited formulas, editable process steps, dough batches, chef attribution, evidence, and analytics.
