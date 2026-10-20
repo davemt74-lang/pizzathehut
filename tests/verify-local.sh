@@ -16,3 +16,5 @@ php tests/verify-experiments.php
 php tests/verify-insights.php
 
 php tests/verify-coach.php
+
+php tests/verify-proposals.php

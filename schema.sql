@@ -258,8 +258,22 @@ CREATE TABLE IF NOT EXISTS pizza_experiments (
  CONSTRAINT fk_experiment_creator FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS experiment_ai_reviews (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ experiment_id BIGINT UNSIGNED NOT NULL,
+ created_by_user_id BIGINT UNSIGNED NOT NULL,
+ model VARCHAR(100) NOT NULL,
+ evidence_snapshot_json LONGTEXT NOT NULL,
+ analysis_json LONGTEXT NOT NULL,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ INDEX idx_experiment_review (experiment_id,created_at),
+ INDEX idx_experiment_review_author (created_by_user_id,created_at),
+ CONSTRAINT fk_ai_exp FOREIGN KEY (experiment_id) REFERENCES pizza_experiments(id) ON DELETE CASCADE,
+ CONSTRAINT fk_ai_author FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
 
--- AI dough coach reports are saved per requesting user, with immutable evidence snapshots.
+
+-- AI dough coach reports remain owned by the requesting user; snapshots are immutable.
 CREATE TABLE IF NOT EXISTS batch_ai_reviews (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
  scope ENUM('all','recipe','batch') NOT NULL,
@@ -273,4 +287,30 @@ CREATE TABLE IF NOT EXISTS batch_ai_reviews (
  INDEX idx_batch_ai_user_scope (created_by_user_id,scope,target_id,id),
  INDEX idx_batch_ai_rate (created_by_user_id,created_at),
  CONSTRAINT fk_batch_ai_user FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+-- Pending Claude suggestions are not executable recipes until a signed-in member approves.
+CREATE TABLE IF NOT EXISTS ai_recipe_proposals (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ source_recipe_id BIGINT UNSIGNED NOT NULL,
+ source_recipe_hash CHAR(64) NOT NULL,
+ title VARCHAR(180) NOT NULL,
+ hypothesis TEXT NULL,
+ target_metric VARCHAR(35) NOT NULL,
+ status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+ proposed_changes_json LONGTEXT NOT NULL,
+ step_guidance TEXT NULL,
+ evidence_basis TEXT NULL,
+ model VARCHAR(100) NOT NULL,
+ created_by_user_id BIGINT UNSIGNED NOT NULL,
+ decided_by_user_id BIGINT UNSIGNED NULL,
+ approved_experiment_id BIGINT UNSIGNED NULL,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ decided_at DATETIME NULL,
+ INDEX idx_proposal_pending (status,id),
+ INDEX idx_proposal_creator (created_by_user_id,created_at),
+ CONSTRAINT fk_proposal_recipe FOREIGN KEY (source_recipe_id) REFERENCES recipes(id) ON DELETE RESTRICT,
+ CONSTRAINT fk_proposal_author FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+ CONSTRAINT fk_proposal_decider FOREIGN KEY (decided_by_user_id) REFERENCES users(id) ON DELETE RESTRICT,
+ CONSTRAINT fk_proposal_experiment FOREIGN KEY (approved_experiment_id) REFERENCES pizza_experiments(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
