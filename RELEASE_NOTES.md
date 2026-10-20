@@ -1,3 +1,22 @@
+# Pizza Lab v1.5.14 — Workday Context and Opt-In Coaching
+
+## Section A — Recorded workday awareness (PR #23)
+- On-page, read-only workday strip: unique day, multiple days requiring selection or no day with confirmed creation.
+- Only explicitly logged batch events and linked pizzas are displayed. Rated-only crispness averages preserve null when absent.
+
+## Section B — Evidence-based suggestions (PR #24)
+- Conservative next-observation suggestions based on recorded workdays, batch count and pizza ratings, with caveats for missing data and samples below three.
+- A user click, not a background process, initiates any Claude request. The bounded workday snapshot is inserted only during user-initiated analysis; no data mutations.
+
+## Section C — Disposable MySQL/HTTP certification (PR #25)
+- Authenticated team login; verify no-day, one-day, ambiguous-day, explicit selection and invalid-date behavior.
+- Prove an unlinked pizza is not inferred from a batch, linked batches are the only records surfaced and unrated crispness is not zero.
+- PHP 8.2, 8.3 and 8.4 source checks, Node contracts and SHA-256-certified deployment package.
+
+**Limitations:** Server/browser integration testing is not a live iPhone or Claude API acceptance test. The client's calendar date is not authoritative payroll/shift evidence. No new schema migration. Back up before upgrading.
+
+---
+
 # Pizza Lab v1.5.13 — Kitchen Reliability & Acceptance
 
 ## C. Camera lifecycle and evidence recovery (PR #21)

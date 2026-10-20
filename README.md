@@ -1,3 +1,18 @@
+# Pizza Lab v1.5.14 — Automatic Workday Awareness
+
+## Latest release
+
+- The chat canvas now has a small read-only view of the kitchen-local calendar date's recorded workday, without adding dashboards or auto-creating a shift.
+- With one recorded workday, show explicitly logged dough batches and linked pizza tests. With multiple workdays, require chef selection; with no workday, offer the existing confirmation flow to create one.
+- Optional coaching suggestions come only from linked batches, linked pizza tests and actual rating sample counts. Clicking **Ask agent** explicitly selects the relevant batch and requests analysis.
+- Chef-initiated Claude reviews may include bounded, verified workday context. Missing measurements remain missing, and advice does not mutate recipes, production records, photos or oven actions.
+- CI checks source safety, PHP 8.2/8.3/8.4, Node, disposable MySQL, authenticated team login, same-origin camera, workday none/one/multiple/explicit selection, and release checksum.
+- **Not tested on production:** real iPhone microphone/camera permissions, live Claude API responses, physical oven readings, or customer database upgrades. The chat uses the **device-local date** as a lookup key; it is not proof someone worked a shift.
+
+**Deployment:** Back up database, config.php and private uploads. This feature requires no new database migration. Never overwrite your production secrets or private uploads.
+
+---
+
 # Pizza Lab v1.5.13 — Kitchen Reliability & Acceptance
 
 **Sections B–D:** Voice recognizers now guard stale callbacks, stop during backgrounding and recover via explicit retap. The camera tracker aborts pending captures on close, handles late permissions and unexpected disconnection, and warns when a partially completed upload may already have been saved. CI includes simulated camera lifecycle and preservation of existing pizza evidence/media records through an upgrade. These are automated safeguards, not iPhone or production acceptance.\n\n**Section A (upgrade safety):** A Super Admin must explicitly confirm completing an external backup of the database, config.php and private uploads before the existing upgrade tool can alter schema. CI verifies the unchecked path is refused and a confirmed upgrade completes on disposable MySQL. This does **not** create the backup or certify a production restoration. Keep secure off-server backup copies before deployment.
