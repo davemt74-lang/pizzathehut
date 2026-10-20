@@ -175,3 +175,9 @@ The Experiments & analytics tab supports an unlimited number of recipes. Create 
 ## v1.5.7: cooking-activity bridge
 
 On the live scanner, start/stop the pizza timer through buttons or voice. The agent's pull-back/rotate/time-left cues are logged as **reminders** only. Actual movement requires a chef to tap **Confirm actual pull-back** or **Confirm actual rotation** (or record a position manually on the heat map). A scanner snapshot adds `photo_captured` linked to private media, and completed Claude reviews add separately labeled `analysis_complete` / `visual_turn_suggestion` events. Each event has a unique client id for deduplication and the server validates its evidence association. You can optionally select the oven layout at the start of a bake. The app never infers IR temperatures or pizza position from reminders. The workday and batch history remain intact.
+
+## v1.5.8: Chat-first cooking intelligence
+
+Pizza Lab now opens **Agent Chat** on sign-in. The sticky composer has a microphone button for tap-to-speak questions, a camera button that opens the existing private pizza tracker, and a send action. Voice-initiated questions receive an optional device-spoken summary; typing remains available if recognition is unavailable. This is browser speech recognition, not biometric verification, and on some iPhones it may require repeated permission/taps. Camera tracking still requires a selected pizza evidence record.
+
+The administrative Lab tools workspace remains accessible through **Lab tools**. **Cooking Patterns** compares completed oven sessions by recipe and measured launch zone, reporting actual pull-back/rotation timing separately from reminders, with per-metric sample counts and explicit missing values. Findings are observational and should be validated through controlled comparisons. Shared access is limited to signed-in team users. Nothing autonomously modifies recipes.
