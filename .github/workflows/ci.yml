@@ -70,6 +70,7 @@ jobs:
           php tests/http-upgrade.php
           php tests/http-workday.php
           php tests/http-kitchen.php
+          php tests/http-timers.php
   deploy-archive:
     name: Deployment ZIP and SHA-256
     needs: [source-validation, integration-smoke]
