@@ -1,3 +1,13 @@
+# Pizza Lab v1.5.16B — Foreground Kitchen Reminders
+
+The agent now issues one advisory kitchen check per active pizza and milestone when a chef has explicitly supplied a cooking time, for example **"Pizza, start timer for pizza #12 for 90 seconds"**. It suggests a rotation check near 40% of planned cook time, a pull-back check at 75%, and a doneness/finish check at 100%. These percentages are generic **checkpoints**, not validated best cooking times for every oven. The chef must physically inspect and confirm actual actions. The app makes no measurements or physical movement claims.
+
+Server-driven polling while Agent Chat is **open and foreground-visible** evaluates elapsed time, records agent-alert provenance in the cooking timeline and deduplicates reminders per timer run. The database claims delivery once per account across tabs/devices. A chat alert remains visible for dismissal; optional speech can be enabled with the on-screen **Speak kitchen alerts** button. Browsers may block speech; background/locked-phone alerts and server-side scheduling while no device is active are **not implemented or guaranteed**. Timers without a specified target continue counting but produce no milestone reminders.
+
+Existing installations: back up the database, config.php and private uploads; deploy without overwriting private data and apply **upgrade.php** as Super Admin. New tables kitchen_timer_reminders and kitchen_reminder_receipts are additive. No Gelato integration.
+
+---
+
 # Pizza Lab v1.5.16A — Persistent Kitchen Activity
 
 Section A adds server-owned, restart-safe cooking timers to Agent Chat. Active pizza timers synchronize from MySQL across connected pages/devices. Start, stop, pause, resume, and reset use existing authenticated cooking commands and audited events. The server retains elapsed time through browser reloads and temporary disconnects. The chat has a small active-timer display that refreshes while visible. A timer target is optional through the API; target attainment does not claim a physical move occurred.
