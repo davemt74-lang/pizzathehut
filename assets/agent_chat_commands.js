@@ -7,11 +7,19 @@ function parseCommand(raw){
  if(/^(open|show) (the )?(menu|navigation|sidebar)$/.test(lower))return{type:'menu'};
  if(/^(open|start|show) (the )?(pizza )?(camera|tracker|camera tracker)$/.test(lower))return{type:'camera_open'};
  if(/^(close|stop|hide) (the )?(pizza )?(camera|tracker|camera tracker)$/.test(lower))return{type:'camera_close'};
+ let m=input.match(/^(?:pizza[, ]+)?(?:the )?(?:dough |batch )?(?:temperature|temp)(?: for)? (?:batch )?([A-Za-z0-9-]{3,18}) (?:is |at )?(-?\d+(?:\.\d{1,2})?) (?:degrees?|°?f)?$/i);
+ if(m)return{type:'kitchen',action_type:'dough_temp',term:m[1],temperature_f:Number(m[2])};
+ m=input.match(/^(?:pizza[, ]+)?(?:batch )([A-Za-z0-9-]{3,18}) (?:is |at )(-?\d+(?:\.\d{1,2})?) (?:degrees?|°?f)?$/i);
+ if(m)return{type:'kitchen',action_type:'dough_temp',term:m[1],temperature_f:Number(m[2])};
+ m=input.match(/^(?:pizza[, ]+)?(?:the )?(?:fridge|refrigerator)(?: (.+?))? (?:is |at )(-?\d+(?:\.\d{1,2})?) (?:degrees?|°?f)?$/i);
+ if(m)return{type:'kitchen',action_type:'fridge_temp',location_label:(m[1]||'Refrigerator').trim(),temperature_f:Number(m[2])};
+ m=input.match(/^(?:pizza[, ]+)?(?:we (?:just )?|i (?:just )?)?(?:balled|ball) (?:the )?batch ([A-Za-z0-9-]{3,18})$/i);
+ if(m)return{type:'kitchen',action_type:'batch_balled',term:m[1]};
  if(/^(help|show commands|what can you do)$/.test(lower))return{type:'help'};
  if(/^(show|list|find|open) (recent |my |the )?workdays?$/.test(lower))return{type:'workdays'};
  if(/^(show|list|find) (all |my |the )?recipes$/.test(lower))return{type:'recipes'};
  if(/^(show|list|find) (recent |all |my |the )?batches$/.test(lower))return{type:'batches'};
- let m=input.match(/^(?:find|show|look up|select|choose|use) (?:the )?recipe (.+)$/i);
+ m=input.match(/^(?:find|show|look up|select|choose|use) (?:the )?recipe (.+)$/i);
  if(m)return{type:'recipe',term:m[1].trim()};
  m=input.match(/^(?:find|show|look up|select|choose|use) (?:the )?(?:dough )?batch (.+)$/i);
  if(m)return{type:'batch',term:m[1].trim()};
@@ -37,6 +45,25 @@ async function getWorkdays(){const res=await fetch('api.php?action=chatWorkdays'
 async function createWorkday(date,title){const res=await fetch('api.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF},body:JSON.stringify({action:'chatCreateWorkday',work_date:date,title,confirmed:true})});const json=await res.json();if(!res.ok||!json.ok)throw Error(json.error||'Workday was not created');return json;}
 async function run(cmd){
  if(pending){pending.remove();pending=null;}
+ if(cmd.type==='kitchen'){
+   const matches=cmd.action_type==='fridge_temp'?[]:BATCHES.filter(b=>b.batch_code.toLowerCase()===cmd.term.toLowerCase());
+   if(cmd.action_type!=='fridge_temp'&&matches.length!==1){card('Select batch','Use the exact batch code or choose a batch from the batch menu. Nothing saved.');return true;}
+   if(cmd.temperature_f!==undefined&&(!Number.isFinite(cmd.temperature_f)||cmd.temperature_f < -30||cmd.temperature_f>150)){card('Measurement not saved','Enter an actual temperature between -30 and 150°F.');return true;}
+   const b=matches[0],data={action:'chatKitchenAction',action_type:cmd.action_type,
+     source:window.pizzaChatCommandSource||'manual',batch_id:b?.id??null,temperature_f:cmd.temperature_f??null,
+     location_label:cmd.location_label??null,client_event_id:(window.crypto?.randomUUID?.()||('pizza_'+Date.now()+'_'+Math.random().toString(36).slice(2)))};
+   const info=cmd.action_type==='batch_balled'?'Balled batch '+b.batch_code:cmd.action_type==='fridge_temp'?'Refrigerator '+data.location_label+' at '+data.temperature_f+'°F':'Dough batch '+b.batch_code+' at '+data.temperature_f+'°F';
+   const c=card('Confirm kitchen observation',info+' · Time recorded on confirmation. Nothing saved yet.');
+   const row=element('div');row.className='coach-confirm';
+   const approve=element('button','Confirm and save'),cancel=element('button','Cancel');approve.type=cancel.type='button';approve.className='primary';
+   approve.addEventListener('click',async()=>{if(approve.disabled)return;approve.disabled=cancel.disabled=true;try{
+     const response=await fetch('api.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF},body:JSON.stringify({...data,confirmed:true})});
+     const value=await response.json();if(!response.ok||!value.ok)throw Error(value.error||'Save failed');
+     c.append(element('p',value.existing?'Already saved, no duplicate created.':'Saved · record #'+value.id));row.remove();pending=null;
+   }catch(e){c.append(element('p',e.message));approve.disabled=cancel.disabled=false;}});
+   cancel.addEventListener('click',()=>{row.remove();c.append(element('p','Cancelled, nothing saved.'));pending=null;});
+   row.append(approve,cancel);c.append(row);pending=row;return true;
+ }
  if(cmd.type==='menu'){window.dispatchEvent(new Event('pizza-chat-nav'));return true;}
  if(cmd.type==='camera_open'){window.dispatchEvent(new Event('pizza-chat-camera-open'));card('Pizza camera','The camera opens in chat. Choose a pizza record and start the tracker before capturing.');return true;}
  if(cmd.type==='camera_close'){window.dispatchEvent(new Event('pizza-chat-camera-close'));card('Pizza camera','Camera panel closed.');return true;}
@@ -63,5 +90,5 @@ async function run(cmd){
  }
  return false;
 }
-window.pizzaChatCommands=async value=>{const cmd=parseCommand(value);if(!cmd)return false;window.dispatchEvent(new Event('pizza-chat-local-command'));try{await run(cmd);}catch(e){card('Command unavailable',e.message||'Try again.');}return true;};
+window.pizzaChatCommands=async value=>{const source=window.pizzaChatNextInputSource||'manual';window.pizzaChatNextInputSource=null;window.pizzaChatCommandSource=source;const cmd=parseCommand(value);if(!cmd)return false;window.dispatchEvent(new Event('pizza-chat-local-command'));try{await run(cmd);}catch(e){card('Command unavailable',e.message||'Try again.');}return true;};
 })();

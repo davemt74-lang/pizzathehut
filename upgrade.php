@@ -193,6 +193,12 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         if (!preg_match('/CREATE TABLE IF NOT EXISTS oven_cook_activity \(.*?\) ENGINE=InnoDB;/s',$schema,$activityMatch)) throw new RuntimeException('Missing cooking activity schema.');
         db()->exec($activityMatch[0]);
         $results[]='v1.5.7 auditable and idempotent cooking activity ready';
+        foreach (['chat_kitchen_actions','kitchen_environment_readings'] as $tableName) {
+            $pattern='/CREATE TABLE IF NOT EXISTS '.preg_quote($tableName,'/').' \(.*?\) ENGINE=InnoDB;/s';
+            if (!preg_match($pattern,$schema,$matched)) throw new RuntimeException('Missing conversational kitchen schema.');
+            db()->exec($matched[0]);
+            $results[]='v1.5.15 '.$tableName.' ready';
+        }
         $results[]='v1.4.1 batch maker attribution and role-aware access verified';
     } catch (Throwable $e) {
         error_log('Pizza Lab upgrade failure: '.$e->getMessage());

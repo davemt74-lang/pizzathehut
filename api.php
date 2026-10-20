@@ -9,6 +9,7 @@ require_once __DIR__.'/ai_experiments.php';
 require_once __DIR__.'/batch_ai.php';
 require_once __DIR__.'/ai_proposals.php';
 require_once __DIR__.'/cook_activity_lib.php';
+require_once __DIR__.'/chat_kitchen_lib.php';
 require_once __DIR__.'/workday_context_lib.php';
 header('Cache-Control: no-store');
 try {
@@ -105,6 +106,7 @@ try {
     }
     if ($action==='generateProposal') { json_out(['ok'=>true,...lab_generate_proposal($d)]); }
     if ($action==='decideProposal') { json_out(['ok'=>true,...lab_decide_proposal($d)]); }
+    if ($action==='chatKitchenAction') {json_out(['ok'=>true,...lab_kitchen_action_save($d)]);}
     if ($action==='chatCreateWorkday') {
         require_once __DIR__.'/workday_lib.php';
         if(($d['confirmed']??false)!==true)fail('Confirm workday creation in the chat first.');

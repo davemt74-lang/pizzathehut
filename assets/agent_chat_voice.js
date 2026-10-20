@@ -35,7 +35,7 @@
     if(/^(take (a )?photo|capture (a )?photo|take (a )?picture)$/.test(command)){
       voiceQuestion=false;stop('Voice photo command received.');window.dispatchEvent(new Event('pizza-chat-photo-command'));return;
     }
-    voiceQuestion=true;input.value=text;stop('Voice question submitted.');if(input.value)form.requestSubmit();
+    voiceQuestion=true;window.pizzaChatNextInputSource='voice_command';input.value=text;stop('Voice question submitted.');if(input.value)form.requestSubmit();
   };
   rec.onerror=e=>{if(rec!==recognizer)return;voiceQuestion=false;stop('Mic: '+(e.error||'unavailable')+'. You can still type.');};
   rec.onend=()=>{if(rec===recognizer)stop('Microphone off · Press to speak');};
