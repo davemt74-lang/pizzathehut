@@ -26,6 +26,10 @@ try {
             $history=query('SELECT a.id,a.event_type,a.event_class,a.source,a.elapsed_seconds,a.media_id,a.occurred_at,u.display_name AS chef FROM oven_cook_activity a JOIN users u ON u.id=a.created_by_user_id WHERE a.evidence_id=? ORDER BY a.id DESC LIMIT 150',[$id])->fetchAll();
             json_out(['ok'=>true,'events'=>$history]);
         }
+        if ($action==='chatWorkdays') {
+            $days=query('SELECT id,work_date,title FROM workdays ORDER BY work_date DESC,id DESC LIMIT 25')->fetchAll();
+            json_out(['ok'=>true,'workdays'=>$days]);
+        }
         if ($action==='teamUsers') {
             require_super_admin();
             $users=query('SELECT id,display_name,email,role,is_active,created_at FROM users ORDER BY FIELD(role,"super_admin","team_member"),display_name,id')->fetchAll();
@@ -81,6 +85,18 @@ try {
     }
     if ($action==='generateProposal') { json_out(['ok'=>true,...lab_generate_proposal($d)]); }
     if ($action==='decideProposal') { json_out(['ok'=>true,...lab_decide_proposal($d)]); }
+    if ($action==='chatCreateWorkday') {
+        require_once __DIR__.'/workday_lib.php';
+        if(($d['confirmed']??false)!==true)fail('Confirm workday creation in the chat first.');
+        $date=(string)($d['work_date']??'');
+        if(!lab_valid_work_date($date))fail('Invalid work date.');
+        $title=plain($d['title']??'Pizza production',160);
+        if($title==='')$title='Pizza production';
+        $existing=query('SELECT id FROM workdays WHERE work_date=? AND title=? AND created_by_user_id=? ORDER BY id DESC LIMIT 1',[$date,$title,auth()])->fetchColumn();
+        if($existing!==false)json_out(['ok'=>true,'id'=>(int)$existing,'existing'=>true]);
+        query('INSERT INTO workdays (work_date,title,notes,created_by_user_id) VALUES (?,?,?,?)',[$date,$title,'',auth()]);
+        json_out(['ok'=>true,'id'=>(int)db()->lastInsertId(),'existing'=>false]);
+    }
     if ($action==='batchCoachAsk') {json_out(['ok'=>true,'review'=>lab_coach_ask($d)]);}
     if ($action==='createExperiment') { json_out(['ok'=>true,'id'=>lab_create_experiment($d)]); }
     if ($action==='reviewExperiment') { json_out(['ok'=>true,'review'=>lab_ai_review_experiment((int)($d['id']??0))]); }

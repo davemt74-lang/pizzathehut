@@ -28,3 +28,9 @@ php tests/verify-chat-first.php
 node --check assets/agent_chat_camera.js
 php tests/verify-inline-camera.php
 node tests/verify-inline-camera.js
+
+# v1.5.10 deterministic commands and accessible hamburger navigation.
+node --check assets/agent_chat_commands.js
+node --check assets/agent_chat_nav.js
+node tests/verify-chat-navigation.js
+php tests/verify-chat-navigation.php
