@@ -4,6 +4,7 @@ require __DIR__.'/bootstrap.php';
 auth();
 $recipes=query('SELECT id,name FROM recipes ORDER BY name')->fetchAll();
 $batches=query('SELECT b.id,b.batch_code,r.name AS recipe_name FROM dough_batches b JOIN recipes r ON r.id=b.recipe_id ORDER BY b.id DESC LIMIT 250')->fetchAll();
+$batchEvidence=query('SELECT batch_id,id FROM evidence WHERE batch_id IS NOT NULL ORDER BY id DESC LIMIT 1000')->fetchAll();
 $scope=in_array(($_GET['scope']??''),['all','recipe','batch'],true)?$_GET['scope']:'all';
 $target=(string)($_GET['id']??'');
 $user=auth_user();
@@ -145,6 +146,7 @@ body.chat-nav-open{overflow:hidden}
 const CSRF=<?=json_encode(csrf(),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_QUOT|JSON_HEX_APOS)?>;
 const RECIPES=<?=json_encode($recipes,JSON_INVALID_UTF8_SUBSTITUTE|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_QUOT|JSON_HEX_APOS)?>;
 const BATCHES=<?=json_encode($batches,JSON_INVALID_UTF8_SUBSTITUTE|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_QUOT|JSON_HEX_APOS)?>;
+window.PIZZA_CHAT_BATCH_EVIDENCE=<?=json_encode($batchEvidence,JSON_INVALID_UTF8_SUBSTITUTE|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_QUOT|JSON_HEX_APOS)?>;
 const FIRST=<?=json_encode($target,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_QUOT|JSON_HEX_APOS)?>;
 window.PIZZA_CHAT_ACCOUNT=<?=json_encode($account,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_QUOT|JSON_HEX_APOS)?>;
 window.PIZZA_CHAT_CSRF=CSRF;

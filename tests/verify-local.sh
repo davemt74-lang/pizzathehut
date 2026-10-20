@@ -41,3 +41,6 @@ php tests/verify-conversation.php
 
 node --check assets/agent_chat_voice.js
 php tests/verify-kitchen-voice.php
+
+node --check assets/agent_chat_camera.js
+php tests/verify-chat-camera-selection.php
