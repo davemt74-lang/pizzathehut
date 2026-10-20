@@ -527,3 +527,28 @@ CREATE TABLE IF NOT EXISTS kitchen_activity_timers (
  CONSTRAINT fk_kitchen_timer_pizza FOREIGN KEY (evidence_id) REFERENCES evidence(id) ON DELETE CASCADE,
  CONSTRAINT fk_kitchen_timer_user FOREIGN KEY (updated_by_user_id) REFERENCES users(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
+
+-- v1.5.16B: one advisory alert per timer run/milestone (not a chef action)
+CREATE TABLE IF NOT EXISTS kitchen_timer_reminders (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ evidence_id BIGINT UNSIGNED NOT NULL,
+ start_activity_id BIGINT UNSIGNED NOT NULL,
+ activity_id BIGINT UNSIGNED NOT NULL,
+ reminder_type ENUM('rotation_reminder','pull_back_reminder','time_up_reminder') NOT NULL,
+ created_at DATETIME(6) NOT NULL,
+ UNIQUE KEY uq_kitchen_reminder_run (evidence_id,start_activity_id,reminder_type),
+ UNIQUE KEY uq_kitchen_reminder_event (activity_id),
+ INDEX idx_kitchen_reminder_recent (created_at),
+ CONSTRAINT fk_kitchen_reminder_pizza FOREIGN KEY (evidence_id) REFERENCES evidence(id) ON DELETE CASCADE,
+ CONSTRAINT fk_kitchen_reminder_start FOREIGN KEY (start_activity_id) REFERENCES oven_cook_activity(id) ON DELETE CASCADE,
+ CONSTRAINT fk_kitchen_reminder_event FOREIGN KEY (activity_id) REFERENCES oven_cook_activity(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS kitchen_reminder_receipts (
+ reminder_id BIGINT UNSIGNED NOT NULL,
+ user_id BIGINT UNSIGNED NOT NULL,
+ claimed_at DATETIME(6) NOT NULL,
+ PRIMARY KEY (reminder_id,user_id),
+ INDEX idx_kitchen_reminder_receipts_user (user_id,claimed_at),
+ CONSTRAINT fk_kitchen_receipt_reminder FOREIGN KEY (reminder_id) REFERENCES kitchen_timer_reminders(id) ON DELETE CASCADE,
+ CONSTRAINT fk_kitchen_receipt_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
