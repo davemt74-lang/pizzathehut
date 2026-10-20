@@ -1,6 +1,6 @@
 # Pizza Lab v1.5.13 — Kitchen Reliability & Acceptance
 
-**Section A (upgrade safety):** A Super Admin must explicitly confirm completing an external backup of the database, config.php and private uploads before the existing upgrade tool can alter schema. CI verifies the unchecked path is refused and a confirmed upgrade completes on disposable MySQL. This does **not** create the backup or certify a production restoration. Keep secure off-server backup copies before deployment.
+**Sections B–D:** Voice recognizers now guard stale callbacks, stop during backgrounding and recover via explicit retap. The camera tracker aborts pending captures on close, handles late permissions and unexpected disconnection, and warns when a partially completed upload may already have been saved. CI includes simulated camera lifecycle and preservation of existing pizza evidence/media records through an upgrade. These are automated safeguards, not iPhone or production acceptance.\n\n**Section A (upgrade safety):** A Super Admin must explicitly confirm completing an external backup of the database, config.php and private uploads before the existing upgrade tool can alter schema. CI verifies the unchecked path is refused and a confirmed upgrade completes on disposable MySQL. This does **not** create the backup or certify a production restoration. Keep secure off-server backup copies before deployment.
 
 # Pizza Lab v1.5.12 — Kitchen Conversation Reliability
 
