@@ -1,9 +1,11 @@
-# Pizza Lab v1.5.8 — Cooking Patterns and Chat-First Voice UX
+# Pizza Lab v1.5.9 — In-chat Camera Tracker
 
-- Main screen is a minimal Agent Chat with sticky microphone, camera, message, and send controls.
-- Microphone uses tap-to-speak browser recognition; a voice-initiated question can trigger spoken Claude summary. Fallback is manual text input. Replies may require user interaction for device playback.
-- Camera footer opens the existing protected pizza tracker; no passive photo capture.
-- Lab tools remain available for administration and manual analytics.
-- Cooking Patterns provides recorded pizza counts, sample sizes, per-recipe/launch-zone score averages, and confirmed pull-back/rotation timings; agent reminders are not counted as physical movements.
-- Existing batch intelligence remains read-only except for saving evidence-grounded reports. No schema migrations are required for this section.
-- Code/CI certification does not replace live MySQL, Claude, or iPhone voice/camera acceptance.
+- Open/close live pizza camera directly from the sticky Agent Chat footer, without navigating away.
+- Reuse existing manual/assisted bounding-box tracker, authenticated image upload, cooking event logs, and Claude visual analysis.
+- Send a saved photo preview and Claude observation into the chat conversation with same-origin validated messages.
+- Support 'Pizza, take photo' through the chat microphone when the camera is active and a pizza test is selected.
+- Explicit camera start and selection are required; closing the panel releases camera/microphone tracks.
+- Only the protected embedded tracker may be framed by its own origin; all other pages stay frame-denied.
+- Keep an open-full-screen fallback for browsers that restrict embedded camera permissions.
+
+Source/CI checks do not replace live MySQL, iPhone Safari, or Claude API acceptance. No database migration is needed.

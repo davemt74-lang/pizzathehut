@@ -6,6 +6,7 @@ $recipes=query('SELECT id,name FROM recipes ORDER BY name')->fetchAll();
 $batches=query('SELECT b.id,b.batch_code,r.name AS recipe_name FROM dough_batches b JOIN recipes r ON r.id=b.recipe_id ORDER BY b.id DESC LIMIT 250')->fetchAll();
 $scope=in_array(($_GET['scope']??''),['all','recipe','batch'],true)?$_GET['scope']:'all';
 $target=(string)($_GET['id']??'');
+$voiceProfile=query('SELECT wake_phrase FROM voice_profiles WHERE user_id=?',[auth()])->fetch();
 ?><!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#10151c"><title>Agent Chat · Pizza Lab</title><link rel="stylesheet" href="assets/style.css?v=1.5.2"><style>
 :root{--edge:rgba(148,175,189,.18)}
 body{margin:0}.coach{max-width:930px;margin:0 auto;padding:12px 14px 140px;min-height:100dvh}
@@ -28,17 +29,28 @@ body{margin:0}.coach{max-width:930px;margin:0 auto;padding:12px 14px 140px;min-h
 .coach-action.listening{outline:2px solid #8bdbb9;background:#29453f}.coach-action.primary{font-size:1.2rem}
 .coach-status{font-size:.75rem;opacity:.8;min-height:17px;padding:4px 8px}
 .coach-muted{font-size:.82rem;opacity:.7}
+.coach-camera-panel[hidden]{display:none!important}
+.coach-camera-panel{position:fixed;z-index:9;inset:10px max(10px,calc((100vw - 930px)/2)) 92px;background:#111b24;border:1px solid #506578;border-radius:19px;display:flex;flex-direction:column;box-shadow:0 12px 45px #000b;overflow:hidden}
+.coach-camera-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 13px;border-bottom:1px solid var(--edge)}
+.coach-camera-head a{font-size:.78rem}.coach-camera-head button{min-height:36px;padding:6px 12px}
+.coach-camera-frame{flex:1;display:block;width:100%;height:100%;border:0;background:#111b24}
+.coach-action[aria-expanded=true]{outline:2px solid var(--accent)}
+@media(max-width:600px){.coach-camera-panel{inset:6px 6px 104px;border-radius:14px}.coach-camera-head{padding:7px 10px}}
 @media(max-width:600px){.coach{padding:9px 10px 142px}.coach-top{gap:6px}.coach-top a{font-size:.78rem}.coach-inputbar{gap:5px}.coach-message{padding:13px}}
 </style></head><body><main class="coach">
 <header class="coach-top"><a href="index.php?workspace=1">☷ Lab tools</a><h1>Pizza Lab · Agent</h1><a href="cooking_patterns.php">Cooking patterns ↗</a></header>
 <p class="coach-intro">Ask about your dough, cooking technique, or any recipe. Answers use saved evidence when available.</p>
 <details class="coach-context"><summary>Evidence scope · all recipes by default</summary><div class="coach-row"><label>Analyze<select id="scope"><option value="all" <?=$scope==='all'?'selected':''?>>All recipes & batches</option><option value="recipe" <?=$scope==='recipe'?'selected':''?>>One recipe or variation</option><option value="batch" <?=$scope==='batch'?'selected':''?>>One batch</option></select></label><label id="targetRow">Recipe / batch<select id="target"></select></label></div>
-<p class="coach-muted">Recent batch snapshots, mixing and balling, container temperatures, pizza tests, stone readings, sauce, cheese, usage and recorded waste. No visual photo interpretation on this screen: use the pizza scanner for image analysis. Unknown measurements remain unknown.</p></details>
+<p class="coach-muted">Recent batch snapshots, dough temperatures, pizza tests, stone readings, and usage. Tap the footer camera to collect private pizza photos without leaving the chat. Missing measurements remain unknown.</p></details>
 <section id="coachHistory" class="coach-log" aria-live="polite"></section>
+<section id="chatCameraPanel" class="coach-camera-panel" aria-label="In-chat pizza camera" hidden>
+ <header class="coach-camera-head"><strong>Live pizza camera</strong><a href="pizza_tracker.php" target="_blank" rel="noopener">Open full screen ↗</a><button type="button" id="chatCameraClose" aria-label="Close pizza camera">✕ Close</button></header>
+ <iframe id="chatCameraFrame" class="coach-camera-frame" title="Pizza tracker and image analysis" allow="camera; microphone" referrerpolicy="same-origin"></iframe>
+</section>
 <form id="coachForm" class="coach-form">
  <div class="coach-inputbar">
   <button id="chatMic" type="button" class="coach-action" aria-label="Speak to the agent" aria-pressed="false" title="Speak to the agent">🎙</button>
-  <button id="chatCamera" type="button" class="coach-action" aria-label="Open pizza camera tracker" title="Open camera tracker">📷</button>
+  <button id="chatCamera" type="button" class="coach-action" aria-label="Toggle in-chat pizza camera" aria-expanded="false" aria-controls="chatCameraPanel" title="Open pizza tracker in chat">📷</button>
   <textarea id="question" rows="1" maxlength="600" required aria-label="Message Pizza Lab" placeholder="Ask Pizza Lab…"></textarea>
   <button id="send" type="submit" class="primary coach-action" aria-label="Send message" title="Send">➤</button>
  </div>
@@ -49,6 +61,7 @@ const CSRF=<?=json_encode(csrf(),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_QUOT|JSON_HE
 const RECIPES=<?=json_encode($recipes,JSON_INVALID_UTF8_SUBSTITUTE|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_QUOT|JSON_HEX_APOS)?>;
 const BATCHES=<?=json_encode($batches,JSON_INVALID_UTF8_SUBSTITUTE|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_QUOT|JSON_HEX_APOS)?>;
 const FIRST=<?=json_encode($target,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_QUOT|JSON_HEX_APOS)?>;
+window.PIZZA_CHAT_WAKE=<?=json_encode($voiceProfile['wake_phrase']??'pizza',JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_QUOT|JSON_HEX_APOS)?>;
 const el=id=>document.getElementById(id);
 function context(){return {scope:el('scope').value,target_id:el('scope').value==='all'?null:el('target').value};}
 function choose(preset){const t=el('target'),scope=el('scope').value,items=scope==='batch'?BATCHES:RECIPES;t.replaceChildren();for(const x of items){const opt=document.createElement('option');opt.value=x.id;opt.textContent=scope==='batch'?x.batch_code+' · '+x.recipe_name:x.name;t.append(opt);}if(preset&&items.some(x=>String(x.id)===preset))t.value=preset;el('targetRow').hidden=scope==='all';el('coachHistory').replaceChildren();}
@@ -60,4 +73,4 @@ el('scope').addEventListener('change',()=>{choose();loadHistory().catch(e=>el('c
 el('target').addEventListener('change',()=>loadHistory().catch(e=>el('coachStatus').textContent=e.message));
 el('coachForm').addEventListener('submit',async ev=>{ev.preventDefault();const button=el('send');button.disabled=true;el('coachStatus').textContent='Analyzing available evidence…';try{const r=await fetch('api.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF},body:JSON.stringify({action:'batchCoachAsk',...context(),question:el('question').value})});const d=await r.json();if(!r.ok||!d.ok)throw Error(d.error||'Claude request failed');show(d.review);window.dispatchEvent(new CustomEvent('pizza-chat-reply',{detail:{text:d.review?.analysis?.summary||''}}));el('question').value='';el('coachStatus').textContent='Report saved from '+d.review.snapshot_batches+' batch(es). No automatic changes.';window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});}catch(e){el('coachStatus').textContent=e.message;}finally{button.disabled=false;}});
 choose(FIRST);loadHistory().catch(e=>el('coachStatus').textContent=e.message);
-</script><script defer src="assets/agent_chat_voice.js?v=1.5.8"></script></body></html>
+</script><script defer src="assets/agent_chat_camera.js?v=1.5.9"></script><script defer src="assets/agent_chat_voice.js?v=1.5.9"></script></body></html>

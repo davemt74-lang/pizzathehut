@@ -13,12 +13,19 @@
   if(!window.isSecureContext){label('A secure HTTPS connection is needed for microphone access.');return;}
   if(active){stop();return;}
   if(speaking&&window.speechSynthesis){window.speechSynthesis.cancel();speaking=false;}
+  window.dispatchEvent(new Event('pizza-chat-mic-start'));
   const rec=new SpeechRecognition();recognizer=rec;active=true;voiceQuestion=false;
   rec.lang='en-US';rec.continuous=false;rec.interimResults=false;rec.maxAlternatives=1;
   rec.onstart=()=>label('Listening · Ask about your dough or pizza…');
   rec.onresult=e=>{
     const text=Array.from(e.results).filter(r=>r.isFinal).map(r=>r[0].transcript).join(' ').trim();
     if(!text)return;
+    const normalized=text.toLowerCase().replace(/[^a-z ]/g,' ').replace(/\s+/g,' ').trim();
+    const wake=String(window.PIZZA_CHAT_WAKE||'pizza').toLowerCase().trim();
+    const command=normalized.startsWith(wake+' ')?normalized.slice(wake.length+1):'';
+    if(/^(take (a )?photo|capture (a )?photo|take (a )?picture)$/.test(command)){
+      voiceQuestion=false;stop();window.dispatchEvent(new Event('pizza-chat-photo-command'));return;
+    }
     voiceQuestion=true;input.value=text;stop();if(input.value)form.requestSubmit();
   };
   rec.onerror=e=>{voiceQuestion=false;label('Mic: '+(e.error||'unavailable')+'. You can still type.');active=false;};
@@ -26,7 +33,7 @@
   try{rec.start();}catch(e){active=false;label('Unable to start microphone: '+e.message);}
  }
  mic.addEventListener('click',start);
- camera.addEventListener('click',()=>{stop();window.location.assign('pizza_tracker.php');});
+ camera.addEventListener('click',()=>{stop();window.dispatchEvent(new Event('pizza-chat-camera-toggle'));});
  window.addEventListener('pizza-chat-reply',e=>{
    if(!voiceQuestion)return;voiceQuestion=false;
    const text=String(e.detail?.text||'').trim().slice(0,1100);if(!text)return;

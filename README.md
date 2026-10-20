@@ -12,7 +12,7 @@ The heat map overlays named zones on the desktop floor view, displays the **late
 
 ---
 
-# Pizza Lab v1.5.3 — AI Experiment Proposals + Private Evidence Gallery
+# Pizza Lab v1.5.9 — AI Experiment Proposals + Private Evidence Gallery
 
 **Recipe library:** Unlimited formulas, editable process steps, dough batches, chef attribution, evidence, and analytics.
 
@@ -181,3 +181,8 @@ On the live scanner, start/stop the pizza timer through buttons or voice. The ag
 Pizza Lab now opens **Agent Chat** on sign-in. The sticky composer has a microphone button for tap-to-speak questions, a camera button that opens the existing private pizza tracker, and a send action. Voice-initiated questions receive an optional device-spoken summary; typing remains available if recognition is unavailable. This is browser speech recognition, not biometric verification, and on some iPhones it may require repeated permission/taps. Camera tracking still requires a selected pizza evidence record.
 
 The administrative Lab tools workspace remains accessible through **Lab tools**. **Cooking Patterns** compares completed oven sessions by recipe and measured launch zone, reporting actual pull-back/rotation timing separately from reminders, with per-metric sample counts and explicit missing values. Findings are observational and should be validated through controlled comparisons. Shared access is limited to signed-in team users. Nothing autonomously modifies recipes.
+
+
+## v1.5.9 — In-chat pizza camera
+
+The Agent Chat footer camera button opens the existing pizza tracker as a same-origin in-chat panel, keeping the user on the chat canvas. Start tracking and choose an active pizza evidence record to capture. The camera uses the existing low-confidence bounding-box estimate, draggable correction, private scanner-image upload, saved box coordinates, cooking-event attribution, and Claude vision analysis. A preview and Claude summary appear as messages in chat; the authoritative record remains stored in pizza evidence. The footer microphone accepts the saved wake phrase plus 'take photo' while the camera panel is open. The in-panel tracker also supports optional listening. Access to the embedded tracker is explicitly limited to same-origin framing; all other app pages retain DENY. Closing the panel releases camera resources; browser support for iframe camera or Safari speech may vary, so a full-screen tracker fallback remains available. No image temperature measurements or automatic physical rotation are claimed.
