@@ -75,6 +75,19 @@ try {
     check_csrf();
     $d=posted(); $action=(string)($d['action']??$action);
     if (in_array($action,['createTeamMember','updateTeamMember','resetTeamPassword'],true)) lab_team_action($action,$d);
+    if ($action==='updateMyProfile') {
+        require_once __DIR__.'/account_lib.php';
+        $u=auth_user();
+        try{$profile=lab_my_profile_input($d);}catch(InvalidArgumentException $e){fail($e->getMessage());}
+        if(!lab_profile_email_change_authorized((string)$u['email'],$profile['email'],(string)($d['current_password']??''),(string)$u['password_hash']))fail('Current password is required to change your sign-in email.',403);
+        try{
+            query('UPDATE users SET display_name=?, email=? WHERE id=?',[$profile['display_name'],$profile['email'],(int)$u['id']]);
+        }catch(PDOException $e){
+            if(($e->errorInfo[1]??0)===1062)fail('Email already belongs to an account.',409);
+            throw $e;
+        }
+        json_out(['ok'=>true,'profile'=>['display_name'=>$profile['display_name'],'email'=>$profile['email'],'role'=>$u['role']]]);
+    }
     if ($action==='changeMyPassword') {
         $u=auth_user();
         if(!password_verify((string)($d['current_password']??''),$u['password_hash']))fail('Current password is incorrect.',403);

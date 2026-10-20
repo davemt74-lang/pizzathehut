@@ -15,7 +15,7 @@
   if(speaking&&window.speechSynthesis){window.speechSynthesis.cancel();speaking=false;}
   window.dispatchEvent(new Event('pizza-chat-mic-start'));
   const rec=new SpeechRecognition();recognizer=rec;active=true;voiceQuestion=false;
-  rec.lang='en-US';rec.continuous=false;rec.interimResults=false;rec.maxAlternatives=1;
+  rec.lang=window.PIZZA_CHAT_LANGUAGE||'en-US';rec.continuous=false;rec.interimResults=false;rec.maxAlternatives=1;
   rec.onstart=()=>label('Listening · Ask about your dough or pizza…');
   rec.onresult=e=>{
     const text=Array.from(e.results).filter(r=>r.isFinal).map(r=>r[0].transcript).join(' ').trim();
@@ -41,7 +41,9 @@
    if(!window.speechSynthesis){label('Reply saved · Speech playback unavailable');return;}
    try{
      window.speechSynthesis.cancel();
-     const utterance=new SpeechSynthesisUtterance(text);utterance.rate=.95;
+     const utterance=new SpeechSynthesisUtterance(text);
+     const settings=window.PIZZA_CHAT_VOICE||{};utterance.rate=Math.max(.6,Math.min(1.5,Number(settings.voice_rate)||.95));
+     const preferred=(window.speechSynthesis.getVoices?.()||[]).find(v=>v.voiceURI===settings.voice_uri);if(preferred)utterance.voice=preferred;
      speaking=true;utterance.onend=()=>{speaking=false;label('Ready · Press mic to ask again');};
      utterance.onerror=()=>{speaking=false;label('Reply saved · Playback unavailable');};
      window.speechSynthesis.speak(utterance);
