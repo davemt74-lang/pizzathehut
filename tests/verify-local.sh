@@ -12,3 +12,5 @@ php -r 'require "recipe_templates.php"; $r=pizza_lab_recipe_templates(); if(abs(
 if command -v node >/dev/null 2>&1; then node tests/verify-team.js; fi
 if command -v node >/dev/null 2>&1; then node tests/verify-makers.js; fi
 php tests/verify-experiments.php
+
+php tests/verify-insights.php
