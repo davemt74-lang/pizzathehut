@@ -27,6 +27,7 @@ try {
             json_out(['ok'=>true,'recipes'=>$recipes,'recipe_steps'=>$recipeSteps,'batches'=>$batches,'batch_makers'=>query('SELECT id,display_name,is_active FROM users ORDER BY display_name,id')->fetchAll(),'evidence'=>$evidence,'counts'=>$counts,'voice_profile'=>query('SELECT profile_name,wake_phrase,language,voice_uri,voice_rate,require_wake,start_alias FROM voice_profiles WHERE user_id=?',[auth()])->fetch() ?: null,'experiments'=>lab_experiments(),'ovens'=>query('SELECT id,name FROM oven_layouts ORDER BY name,id LIMIT 80')->fetchAll(),'settings'=>['model'=>setting('model','claude-haiku-5-5'),'key_configured'=>setting('claude_key')!=='']]);
         }
         if ($action==='kitchenTimers') { json_out(['ok'=>true,'timers'=>lab_timer_list()]); }
+        if ($action==='chatKitchenAwareness') { json_out(['ok'=>true,'awareness'=>lab_kitchen_awareness(auth())]); }
         if ($action==='cookActivity') {
             $id=(int)($_GET['evidence_id']??0);row_owned('evidence',$id);
             $history=query('SELECT a.id,a.event_type,a.event_class,a.source,a.elapsed_seconds,a.media_id,a.occurred_at,u.display_name AS chef FROM oven_cook_activity a JOIN users u ON u.id=a.created_by_user_id WHERE a.evidence_id=? ORDER BY a.id DESC LIMIT 150',[$id])->fetchAll();
