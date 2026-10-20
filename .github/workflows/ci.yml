@@ -71,6 +71,7 @@ jobs:
           php tests/http-workday.php
           php tests/http-kitchen.php
           php tests/http-timers.php
+          php tests/http-reminders.php
   deploy-archive:
     name: Deployment ZIP and SHA-256
     needs: [source-validation, integration-smoke]
@@ -82,27 +83,27 @@ jobs:
           set -eu
           git ls-files | grep -Ev '^(\.github/|tests/|\.gitignore$)' > /tmp/pizza-lab-deploy-files.txt
           test -s /tmp/pizza-lab-deploy-files.txt
-          zip -q pizza-lab-v1.5.16A-deploy.zip -@ < /tmp/pizza-lab-deploy-files.txt
-          unzip -tq pizza-lab-v1.5.16A-deploy.zip
-          unzip -Z1 pizza-lab-v1.5.16A-deploy.zip | grep -q '^agent_chat.php$'
-          unzip -Z1 pizza-lab-v1.5.16A-deploy.zip | grep -q '^assets/agent_chat_camera.js$'
-          unzip -Z1 pizza-lab-v1.5.16A-deploy.zip | grep -q '^assets/agent_chat_nav.js$'
-          unzip -Z1 pizza-lab-v1.5.16A-deploy.zip | grep -q '^assets/agent_chat_commands.js$'
-          unzip -Z1 pizza-lab-v1.5.16A-deploy.zip | grep -q '^ai_experiments.php$'
-          unzip -Z1 pizza-lab-v1.5.16A-deploy.zip | grep -q '^assets/agent_chat_account.js$'
-          unzip -Z1 pizza-lab-v1.5.16A-deploy.zip | grep -q '^account_lib.php$'
-          unzip -Z1 pizza-lab-v1.5.16A-deploy.zip | grep -q '^upgrade.php$'
-          if unzip -Z1 pizza-lab-v1.5.16A-deploy.zip | grep -Eq '(^|/)(config\.php|\.env|private/uploads/)'; then
+          zip -q pizza-lab-v1.5.16B-deploy.zip -@ < /tmp/pizza-lab-deploy-files.txt
+          unzip -tq pizza-lab-v1.5.16B-deploy.zip
+          unzip -Z1 pizza-lab-v1.5.16B-deploy.zip | grep -q '^agent_chat.php$'
+          unzip -Z1 pizza-lab-v1.5.16B-deploy.zip | grep -q '^assets/agent_chat_camera.js$'
+          unzip -Z1 pizza-lab-v1.5.16B-deploy.zip | grep -q '^assets/agent_chat_nav.js$'
+          unzip -Z1 pizza-lab-v1.5.16B-deploy.zip | grep -q '^assets/agent_chat_commands.js$'
+          unzip -Z1 pizza-lab-v1.5.16B-deploy.zip | grep -q '^ai_experiments.php$'
+          unzip -Z1 pizza-lab-v1.5.16B-deploy.zip | grep -q '^assets/agent_chat_account.js$'
+          unzip -Z1 pizza-lab-v1.5.16B-deploy.zip | grep -q '^account_lib.php$'
+          unzip -Z1 pizza-lab-v1.5.16B-deploy.zip | grep -q '^upgrade.php$'
+          if unzip -Z1 pizza-lab-v1.5.16B-deploy.zip | grep -Eq '(^|/)(config\.php|\.env|private/uploads/)'; then
             echo 'Forbidden secret or private upload included in release' >&2
             exit 1
           fi
-          sha256sum pizza-lab-v1.5.16A-deploy.zip > pizza-lab-v1.5.16A-deploy.sha256
-          sha256sum -c pizza-lab-v1.5.16A-deploy.sha256
+          sha256sum pizza-lab-v1.5.16B-deploy.zip > pizza-lab-v1.5.16B-deploy.sha256
+          sha256sum -c pizza-lab-v1.5.16B-deploy.sha256
       - uses: actions/upload-artifact@v4
         with:
-          name: pizza-lab-v1.5.16A-deployment
+          name: pizza-lab-v1.5.16B-deployment
           path: |
-            pizza-lab-v1.5.16A-deploy.zip
-            pizza-lab-v1.5.16A-deploy.sha256
+            pizza-lab-v1.5.16B-deploy.zip
+            pizza-lab-v1.5.16B-deploy.sha256
           if-no-files-found: error
           retention-days: 90
