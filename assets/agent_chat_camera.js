@@ -56,6 +56,7 @@ window.addEventListener('message',event=>{
  if(event.origin!==window.location.origin||event.source!==frame.contentWindow)return;
  const data=event.data;
  if(!data||data.channel!=='pizza-lab:camera'||panel.hidden)return;
+ if(data.type==='capture-error'){setStatus('Camera capture failed: '+String(data.error||'Please try again').slice(0,320));return;}
  if(data.type==='photo')addPhoto(data);
  else if(data.type==='analysis'||data.type==='analysis-error')showAnalysis(data);
 });
