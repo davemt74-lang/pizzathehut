@@ -188,6 +188,10 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             db()->exec($m[0]);
             $results[]='v1.5.6 '.$tableName.' ready';
         }
+        // v1.5.7 preserves existing heat-map paths; adds linked reminders/confirmed acts.
+        if (!preg_match('/CREATE TABLE IF NOT EXISTS oven_cook_activity \(.*?\) ENGINE=InnoDB;/s',$schema,$activityMatch)) throw new RuntimeException('Missing cooking activity schema.');
+        db()->exec($activityMatch[0]);
+        $results[]='v1.5.7 auditable and idempotent cooking activity ready';
         $results[]='v1.4.1 batch maker attribution and role-aware access verified';
     } catch (Throwable $e) {
         error_log('Pizza Lab upgrade failure: '.$e->getMessage());

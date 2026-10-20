@@ -26,3 +26,4 @@ node --check assets/pizza_tracker.js
 
 php tests/verify-heatmap.php
 node --check assets/heatmap.js
+php tests/verify-cook-activity.php

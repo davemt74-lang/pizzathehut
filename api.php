@@ -8,6 +8,7 @@ require_once __DIR__.'/experiments.php';
 require_once __DIR__.'/ai_experiments.php';
 require_once __DIR__.'/batch_ai.php';
 require_once __DIR__.'/ai_proposals.php';
+require_once __DIR__.'/cook_activity_lib.php';
 header('Cache-Control: no-store');
 try {
     $action=(string)($_GET['action'] ?? $_POST['action'] ?? '');
@@ -18,7 +19,12 @@ try {
             $batches=query("SELECT b.*,r.name AS recipe_name, maker.display_name AS made_by_name, recorder.display_name AS recorded_by_name,a.pizza_tests,a.avg_bake_s,a.avg_stone_f,a.avg_sauce_g,a.avg_cheese_g,a.avg_rise,a.avg_crisp,a.avg_color FROM dough_batches b JOIN recipes r ON r.id=b.recipe_id LEFT JOIN users maker ON maker.id=b.made_by_user_id LEFT JOIN users recorder ON recorder.id=b.recorded_by_user_id LEFT JOIN (SELECT batch_id,COUNT(*) AS pizza_tests,AVG(bake_seconds) AS avg_bake_s,AVG(stone_start_f) AS avg_stone_f,AVG(sauce_g) AS avg_sauce_g,AVG(cheese_g) AS avg_cheese_g,AVG(rim_rise_score) AS avg_rise,AVG(crispness_score) AS avg_crisp,AVG(bottom_color_score) AS avg_color FROM evidence WHERE batch_id IS NOT NULL GROUP BY batch_id) a ON a.batch_id=b.id ORDER BY (b.stage='archived'),b.created_at DESC,b.id DESC LIMIT 500")->fetchAll();
             $evidence=query('SELECT e.*,r.name AS recipe_name,b.batch_code AS batch_code FROM evidence e LEFT JOIN recipes r ON r.id=e.recipe_id LEFT JOIN dough_batches b ON b.id=e.batch_id ORDER BY e.created_at DESC,e.id DESC LIMIT 100')->fetchAll();
             $counts=['recipes'=>count($recipes),'tests'=>(int)db()->query('SELECT COUNT(*) FROM evidence')->fetchColumn(),'photos'=>(int)db()->query("SELECT COUNT(*) FROM media WHERE kind IN ('top','bottom','side','crumb')")->fetchColumn(),'batches'=>(int)db()->query('SELECT COUNT(*) FROM dough_batches')->fetchColumn()];
-            json_out(['ok'=>true,'recipes'=>$recipes,'recipe_steps'=>$recipeSteps,'batches'=>$batches,'batch_makers'=>query('SELECT id,display_name,is_active FROM users ORDER BY display_name,id')->fetchAll(),'evidence'=>$evidence,'counts'=>$counts,'voice_profile'=>query('SELECT profile_name,wake_phrase,language,voice_uri,voice_rate,require_wake,start_alias FROM voice_profiles WHERE user_id=?',[auth()])->fetch() ?: null,'experiments'=>lab_experiments(),'settings'=>['model'=>setting('model','claude-haiku-5-5'),'key_configured'=>setting('claude_key')!=='']]);
+            json_out(['ok'=>true,'recipes'=>$recipes,'recipe_steps'=>$recipeSteps,'batches'=>$batches,'batch_makers'=>query('SELECT id,display_name,is_active FROM users ORDER BY display_name,id')->fetchAll(),'evidence'=>$evidence,'counts'=>$counts,'voice_profile'=>query('SELECT profile_name,wake_phrase,language,voice_uri,voice_rate,require_wake,start_alias FROM voice_profiles WHERE user_id=?',[auth()])->fetch() ?: null,'experiments'=>lab_experiments(),'ovens'=>query('SELECT id,name FROM oven_layouts ORDER BY name,id LIMIT 80')->fetchAll(),'settings'=>['model'=>setting('model','claude-haiku-5-5'),'key_configured'=>setting('claude_key')!=='']]);
+        }
+        if ($action==='cookActivity') {
+            $id=(int)($_GET['evidence_id']??0);row_owned('evidence',$id);
+            $history=query('SELECT a.id,a.event_type,a.event_class,a.source,a.elapsed_seconds,a.media_id,a.occurred_at,u.display_name AS chef FROM oven_cook_activity a JOIN users u ON u.id=a.created_by_user_id WHERE a.evidence_id=? ORDER BY a.id DESC LIMIT 150',[$id])->fetchAll();
+            json_out(['ok'=>true,'events'=>$history]);
         }
         if ($action==='teamUsers') {
             require_super_admin();
@@ -56,6 +62,7 @@ try {
             $e['readings']=query('SELECT * FROM oven_readings WHERE evidence_id=? ORDER BY elapsed_seconds,id',[$id])->fetchAll();
             $e['observations']=query('SELECT * FROM observations WHERE evidence_id=? ORDER BY id DESC LIMIT 40',[$id])->fetchAll();
             $e['events']=query('SELECT * FROM events WHERE evidence_id=? ORDER BY id DESC LIMIT 80',[$id])->fetchAll();
+            $e['cook_activity']=query('SELECT a.*,u.display_name chef FROM oven_cook_activity a JOIN users u ON u.id=a.created_by_user_id WHERE a.evidence_id=? ORDER BY a.id DESC LIMIT 80',[$id])->fetchAll();
             json_out(['ok'=>true,'detail'=>$e]);
         }
         fail('Unknown action',404);
@@ -234,6 +241,30 @@ try {
         if ($id) query('UPDATE evidence SET recipe_id=?,batch_id=?,label=?,pizza_size_in=?,dough_ball_g=?,sauce_g=?,cheese_g=?,dough_age_h=?,stone_start_f=?,stone_finish_f=?,cheese_moisture=?,rim_rise_score=?,crispness_score=?,bottom_color_score=?,bake_seconds=?,oven_load=?,notes=? WHERE id=?',[...$v,$id]);
         else {query('INSERT INTO evidence (recipe_id,batch_id,label,pizza_size_in,dough_ball_g,sauce_g,cheese_g,dough_age_h,stone_start_f,stone_finish_f,cheese_moisture,rim_rise_score,crispness_score,bottom_color_score,bake_seconds,oven_load,notes) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',$v);$id=(int)db()->lastInsertId();}
         json_out(['ok'=>true,'id'=>$id]);
+    }
+    if ($action==='cookActivity') {
+        $id=(int)($d['evidence_id']??0);row_owned('evidence',$id);
+        try{$event=lab_cook_activity((string)($d['event_type']??''),(string)($d['source']??''),$d['elapsed_seconds']??null,$d['media_id']??null);}
+        catch(InvalidArgumentException $ex){fail($ex->getMessage());}
+        $clientId=(string)($d['client_event_id']??'');
+        if(!preg_match('/^[a-zA-Z0-9_-]{12,64}$/',$clientId))fail('Invalid event identifier.');
+        if($event['media_id']!==null){$m=query('SELECT evidence_id,kind FROM media WHERE id=?',[$event['media_id']])->fetch();if(!$m||(int)$m['evidence_id']!==$id||$m['kind']!=='scan')fail('Photo does not belong to this pizza.',403);}
+        $oven=(int)($d['oven_id']??0);
+        $session=query('SELECT id,oven_layout_id FROM oven_cook_sessions WHERE evidence_id=?',[$id])->fetch();
+        if($oven>0){
+            if($session && (int)$session['oven_layout_id']!==$oven)fail('This pizza is assigned to a different oven.',409);
+            if(!$session){
+                if(!query('SELECT id FROM oven_layouts WHERE id=?',[$oven])->fetchColumn())fail('Unknown oven layout.');
+                try{query('INSERT INTO oven_cook_sessions (oven_layout_id,evidence_id,created_by_user_id) VALUES (?,?,?)',[$oven,$id,auth()]);}
+                catch(PDOException $ex){if($ex->getCode()!=='23000')throw $ex;}
+                $session=query('SELECT id,oven_layout_id FROM oven_cook_sessions WHERE evidence_id=?',[$id])->fetch();
+                if(!$session||(int)$session['oven_layout_id']!==$oven)fail('This pizza is assigned to a different oven.',409);
+            }
+        }
+        $uid=auth();
+        try {query('INSERT INTO oven_cook_activity (evidence_id,session_id,event_type,source,event_class,elapsed_seconds,media_id,client_event_id,created_by_user_id) VALUES (?,?,?,?,?,?,?,?,?)',[$id,$session['id']??null,$event['event_type'],$event['source'],$event['event_class'],$event['elapsed_seconds'],$event['media_id'],$clientId,$uid]);$activityId=(int)db()->lastInsertId();}
+        catch(PDOException $ex){if($ex->getCode()!=='23000')throw $ex;$saved=query('SELECT id,evidence_id,event_type,source,elapsed_seconds,media_id FROM oven_cook_activity WHERE created_by_user_id=? AND client_event_id=?',[$uid,$clientId])->fetch();if(!$saved || (int)$saved['evidence_id']!==$id || $saved['event_type']!==$event['event_type'] || $saved['source']!==$event['source'] || ($saved['elapsed_seconds']===null?null:(int)$saved['elapsed_seconds'])!==$event['elapsed_seconds'] || ($saved['media_id']===null?null:(int)$saved['media_id'])!==$event['media_id'])fail('Event identifier already used for another event.',409);$activityId=(int)$saved['id'];}
+        json_out(['ok'=>true,'id'=>$activityId,'event_class'=>$event['event_class']]);
     }
     if ($action==='event') {
         $id=(int)($d['evidence_id']??0);row_owned('evidence',$id);

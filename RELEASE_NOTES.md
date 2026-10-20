@@ -1,18 +1,10 @@
-# Pizza Lab v1.5.6 — Measured Cooking Heat Map
+# Pizza Lab v1.5.7 — Automatic Cooking Activity
 
-- New oven-linked pizza cooking sessions and manually observed oven positions.
-- Record optional exact elapsed times, IR stone temperatures, named zones and chronological cooking events.
-- View actual zone readings and distinct pizzas per zone, plus scored crispness, rise, and bottom color; missing metrics remain unknown.
-- Bounded cooking history is made available to the existing Claude Agent Chat, labeled as observational.
-- SQL migration and regression checks included. Source tests do not certify live MySQL, iPhone camera or Claude API.
-
-# Pizza Lab v1.5.5 — Dough Readiness & Oven/Cooking Evidence
-
-- Added dough readiness observations for recipe-linked batches, with container temperatures and evidence-confidence caveats.
-- Added desktop oven floor builder (NS/EW floor ellipse, centered inscribed circle, inside height, fire location, zones, real temperature readings).
-- Added standalone pizza camera tracker with assisted low-confidence box detection and manual correction, private photo evidence, and Claude review.
-- **Voice command:** With the tracker active, “Pizza, take photo” captures and analyzes the selected pizza. User start/stop timer commands remain in the existing scanner; “rotate,” “pull back,” and “time left” remain agent announcements.
-- Added immutable photo box metadata and server-side ownership/evidence validation.
-- Added automated PHP/Node syntax and feature contract tests.
-
-Live MySQL, iPhone camera/microphone and Claude API behavior still require field tests; source/CI checks are not production certification.
+- Per-pizza immutable, idempotent structured event log linked to selected oven session when assigned.
+- Timer start and stop (manual or voice), pause/resume/reset, timer alerts, manual physical rotation/pull-back confirmation, photo capture and AI analysis.
+- Proactive rotation/pull-back reminders never become false recorded physical actions.
+- Camera and live scanner save photo IDs to same evidence record; AI turn suggestions remain suggestions.
+- Activity timeline displayed on live oven scanner and cooking heat-map detail; linked batch context available to Claude.
+- Missing stone temperature, unknown elapsed time and unknown floor coordinates remain unknown.
+- Existing customers run upgrade.php after database backup; camera and voice need foreground, HTTPS, permissions.
+- GitHub source CI does not certify a live MySQL installation, physical oven, iPhone speech recognition, or Claude responses.

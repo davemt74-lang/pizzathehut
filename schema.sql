@@ -464,3 +464,25 @@ CREATE TABLE IF NOT EXISTS oven_cook_events (
  CONSTRAINT fk_cook_event_session FOREIGN KEY (session_id) REFERENCES oven_cook_sessions(id) ON DELETE CASCADE,
  CONSTRAINT fk_cook_event_user FOREIGN KEY (recorded_by_user_id) REFERENCES users(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
+
+-- v1.5.7: structured, idempotent cooking activity. Reminder vs confirmed action always explicit.
+CREATE TABLE IF NOT EXISTS oven_cook_activity (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ evidence_id BIGINT UNSIGNED NOT NULL,
+ session_id BIGINT UNSIGNED NULL,
+ event_type VARCHAR(40) NOT NULL,
+ source VARCHAR(25) NOT NULL,
+ event_class ENUM('observed','reminder','suggestion') NOT NULL,
+ elapsed_seconds INT UNSIGNED NULL,
+ media_id BIGINT UNSIGNED NULL,
+ client_event_id VARCHAR(64) NOT NULL,
+ created_by_user_id BIGINT UNSIGNED NOT NULL,
+ occurred_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ UNIQUE KEY uniq_activity_client (created_by_user_id,client_event_id),
+ INDEX idx_cook_activity_timeline (evidence_id,occurred_at,id),
+ CONSTRAINT fk_activity_evidence FOREIGN KEY (evidence_id) REFERENCES evidence(id) ON DELETE CASCADE,
+ CONSTRAINT fk_activity_session FOREIGN KEY (session_id) REFERENCES oven_cook_sessions(id) ON DELETE SET NULL,
+ CONSTRAINT fk_activity_media FOREIGN KEY (media_id) REFERENCES media(id) ON DELETE SET NULL,
+ CONSTRAINT fk_activity_user FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
