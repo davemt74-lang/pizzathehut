@@ -1,3 +1,14 @@
+# Pizza Lab v1.5.16D — Voice & Kitchen Continuity
+
+- Fix missing Agent Chat batch-script inclusion; load the batch module before command routing.
+- Optional spoken batch steps and ingredient reading through the existing single voice controller.
+- Two-turn explicit batch-creation and step-completion voice confirmations; "yes" does not write.
+- Server revalidation before step completion, deduplication, 2-minute expiry and hidden/unloaded-page cancellation.
+- Foreground navigation recovery from persisted database sessions; never replay pending local commands on reload.
+- New browser-like JavaScript tests for voice commands, interrupted sessions, shared speech/mic arbitration and actual script inclusion.
+- No new schema migration, no locked-phone or background speech guarantees. Real iPhone/production verification remains pending.
+- Standalone Pizza Lab only; no Gelato code or integration changes.
+
 # Pizza Lab v1.5.16C — Conversational Dough Production
 
 - Guided dough creation available on request, not a mandatory primary experience.
