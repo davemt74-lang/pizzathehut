@@ -1,3 +1,11 @@
+# Pizza Lab v1.5.16A — Persistent Kitchen Activity
+
+Section A adds server-owned, restart-safe cooking timers to Agent Chat. Active pizza timers synchronize from MySQL across connected pages/devices. Start, stop, pause, resume, and reset use existing authenticated cooking commands and audited events. The server retains elapsed time through browser reloads and temporary disconnects. The chat has a small active-timer display that refreshes while visible. A timer target is optional through the API; target attainment does not claim a physical move occurred.
+
+This release does not yet provide proactive rotation reminders, background push notifications, or certified iPhone speech/camera behavior. Those belong to later sections. Before upgrading, back up the database, config.php and private uploads; run upgrade.php as Super Admin. The upgrade adds kitchen_activity_timers without changing existing cooking history.
+
+---
+
 # Pizza Lab v1.5.15 — Conversational Kitchen Operations
 
 **Current release:** one-page Pizza Lab chat, with hamburger menu, account dropdown, microphone and camera controls in the sticky footer.
