@@ -4,10 +4,9 @@
    const input=String(raw||'').trim().replace(/\s+/g,' ');
    if(!input||input.length>600)return null;
    const s=input.toLowerCase().replace(/^[, ]+|[, .!?]+$/g,'').replace(/^(pizza[, ]+)?/,'');
-   if(/^(?:let'?s |we (?:should |need to )?|i (?:want to |need to )?)?(?:make|mix|prepare|start|create) (?:a |one |the )?(?:new )?(?:batch(?: of dough)?|dough batch)(?: (?:using|with|from|of) (?:the )?(.+?))?$/.test(s)){
-     const match=s.match(/^(?:let'?s |we (?:should |need to )?|i (?:want to |need to )?)?(?:make|mix|prepare|start|create) (?:a |one |the )?(?:new )?(?:batch(?: of dough)?|dough batch)(?: (?:using|with|from|of) (?:the )?(.+?))?$/);
-     return {type:'start',recipe:match[1]||'main recipe'};
-   }
+   const pattern=/^(?:let'?s |we (?:should |need to )?|i (?:want to |need to )?)?(?:make|mix|prepare|start|create) (?:a |one |the )?(?:new )?(?:batch(?: of dough)?|dough batch)(?: (?:using|with|from|of) (?:the )?(.+)|, (main(?: recipe)?|current(?: recipe)?|default(?: recipe)?))?$/;
+   const batch=s.match(pattern);
+   if(batch)return {type:'start',recipe:batch[1]||batch[2]||'main recipe'};
    if(/^(?:show|list) (?:my |the )?(?:active |ongoing )?(?:dough )?(?:batch sessions|batch guides|dough sessions)$/.test(s))return{type:'list'};
    const m=s.match(/^(?:resume|continue|show status of|where are we with) (?:the )?(?:dough )?batch(?: (pl-[a-z0-9]{6}))?$/);
    if(m)return{type:'resume',code:m[1]||null};
