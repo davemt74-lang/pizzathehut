@@ -19,7 +19,7 @@ $tests=[
  'iframe source is cleaned on close'=>str_contains($camera,"frame.removeAttribute('src')")&&str_contains($trackerJs,'window.addEventListener(\'pagehide\',stop)'),
  'voice photo command requires wake phrase'=>str_contains($voice,'PIZZA_CHAT_WAKE')&&str_contains($voice,'pizza-chat-photo-command'),
  'tracker explicitly requires evidence and live stream'=>str_contains($trackerJs,"if(!stream||video.readyState<2)")&&str_contains($trackerJs,"if(!id)"),
- 'private media and bounding box linkage'=>str_contains($trackerJs,"api('upload',fd)")&&str_contains($trackerJs,"api('saveTrackerBox'")&&str_contains($api,"$"."action==='saveTrackerBox'"),
+ 'private media and bounding box linkage'=>str_contains($trackerJs,"api('upload',fd,controller.signal)")&&str_contains($trackerJs,"api('saveTrackerBox'")&&str_contains($api,"$"."action==='saveTrackerBox'"),
  'capture does not transfer browser events'=>str_contains($trackerJs,"source:trigger==='voice_command'?'voice_command':'camera'"),
  'chat uses safe text nodes'=>str_contains($camera,'textContent=String(text)')&&!str_contains($camera,'innerHTML'),
  'voice and tracker microphone do not compete'=>str_contains($camera,'pause-voice')&&str_contains($trackerJs,'stopVoice()'),
