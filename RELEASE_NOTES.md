@@ -1,10 +1,9 @@
-# Pizza Lab v1.5.7 — Automatic Cooking Activity
+# Pizza Lab v1.5.8 — Cooking Patterns and Chat-First Voice UX
 
-- Per-pizza immutable, idempotent structured event log linked to selected oven session when assigned.
-- Timer start and stop (manual or voice), pause/resume/reset, timer alerts, manual physical rotation/pull-back confirmation, photo capture and AI analysis.
-- Proactive rotation/pull-back reminders never become false recorded physical actions.
-- Camera and live scanner save photo IDs to same evidence record; AI turn suggestions remain suggestions.
-- Activity timeline displayed on live oven scanner and cooking heat-map detail; linked batch context available to Claude.
-- Missing stone temperature, unknown elapsed time and unknown floor coordinates remain unknown.
-- Existing customers run upgrade.php after database backup; camera and voice need foreground, HTTPS, permissions.
-- GitHub source CI does not certify a live MySQL installation, physical oven, iPhone speech recognition, or Claude responses.
+- Main screen is a minimal Agent Chat with sticky microphone, camera, message, and send controls.
+- Microphone uses tap-to-speak browser recognition; a voice-initiated question can trigger spoken Claude summary. Fallback is manual text input. Replies may require user interaction for device playback.
+- Camera footer opens the existing protected pizza tracker; no passive photo capture.
+- Lab tools remain available for administration and manual analytics.
+- Cooking Patterns provides recorded pizza counts, sample sizes, per-recipe/launch-zone score averages, and confirmed pull-back/rotation timings; agent reminders are not counted as physical movements.
+- Existing batch intelligence remains read-only except for saving evidence-grounded reports. No schema migrations are required for this section.
+- Code/CI certification does not replace live MySQL, Claude, or iPhone voice/camera acceptance.
