@@ -1,0 +1,28 @@
+/* UI contract test without browser or DB; server integration still required. */
+const assert = require('node:assert/strict');
+const fs=require('node:fs');
+const vm=require('node:vm');
+const src=fs.readFileSync(require('node:path').join(__dirname,'..','assets','app.js'),'utf8');
+const prefix=src.slice(0,src.indexOf('function mediaHtml'));
+const context={console};
+vm.createContext(context);
+vm.runInContext(prefix,context);
+const execute=s=>vm.runInContext(s,context);
+execute(`state.data.recipes=[{id:1,name:'85g test',flour_g:11793.4,water_g:7144.1,yeast_g:85,honey_g:120}];state.data.batches=[{id:7,batch_code:'PL-K7M4X2',recipe_id:1,recipe_name:'85g test',stage:'bulk',label:'Monday',pizza_tests:1,avg_crisp:7,avg_rise:8,mixed_at:'2026-10-19 08:00:00'}];state.data.evidence=[];`);
+assert.match(execute('batchForm({recipe_id:1})'),/name="recipe_id" required/);
+assert.match(execute('batchForm({recipe_id:1})'),/85g test/);
+assert.match(execute('batchesView()'),/PL-K7M4X2/);
+assert.match(execute('batchesView()'),/85g test/);
+assert.match(execute('evidenceForm({batch_id:7})'),/name="batch_id"/);
+assert.match(execute('evidenceForm({batch_id:7})'),/PL-K7M4X2/);
+assert.match(execute('evidenceForm({batch_id:7})'),/name="rim_rise_score"/);
+assert.match(execute('evidenceForm({batch_id:7})'),/name="crispness_score"/);
+assert.match(execute('evidenceForm({batch_id:7})'),/name="bottom_color_score"/);
+execute(`state.activeBatch={id:7,batch_code:'PL-K7M4X2',recipe_id:1,recipe_name:'85g test',recipe_at_mixing:{name:'85g test',flour_g:11793.4,water_g:7144.1,yeast_g:85,honey_g:120},stage:'bulk',pizzas:[],events:[],analytics:{pizzas:0},notes:null}`);
+assert.match(execute('batchDetailView()'),/PL-K7M4X2/);
+assert.match(execute('batchDetailView()'),/Recipe at batch creation/);
+execute(`state.batchFilter='1'`);
+assert.match(execute('batchesView()'),/PL-K7M4X2/);
+execute(`state.batchFilter='2'`);
+assert.doesNotMatch(execute('batchesView()'),/PL-K7M4X2/);
+console.log('PASS: batch UI forms, recipe linkage, filtering, ratings, analytics render');

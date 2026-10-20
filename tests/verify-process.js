@@ -1,0 +1,28 @@
+/* Source/UI tests: no MySQL server, actual iPhone, or Claude live API in this environment. */
+'use strict';
+const assert=require('node:assert/strict');const fs=require('node:fs');const vm=require('node:vm');const path=require('node:path');
+const src=fs.readFileSync(path.join(__dirname,'..','assets','app.js'),'utf8');
+const ctx={console};vm.createContext(ctx);vm.runInContext(src.slice(0,src.indexOf('function mediaHtml')),ctx);
+const x=e=>vm.runInContext(e,ctx);
+x(`state.data.recipes=[{id:1,name:'Gelato v1.0',flour_g:10000,water_g:5800,yeast_g:30},{id:2,name:'Stonefellows v1.0',flour_g:11793.4,water_g:7144.1,honey_g:120,yeast_g:85}];
+state.data.recipe_steps=[{recipe_id:1,step_key:'initial_mix',stage:'mix',sort_order:10,title:'Initial flour mix',instructions:'4,800g ice water',target_start_min:0,target_min_minutes:3,target_max_minutes:3},{recipe_id:2,step_key:'bulk_24h',stage:'cold_bulk',sort_order:10,title:'Cold bulk fermentation',instructions:'24h',target_start_min:null,target_min_minutes:1440,target_max_minutes:1440}];`);
+assert.match(x('recipesView()'),/Gelato v1.0/);
+assert.match(x('recipesView()'),/Stonefellows v1.0/);
+assert.match(x('recipesView()'),/Edit steps \/ timeline \(1\)/);
+assert.match(x('recipeProcessView(1)'),/4,800g ice water/);
+assert.match(x('recipeProcessView(2)'),/1,440 min/);
+assert.match(x('recipeStepForm(1,{step_key:"initial_mix",target_min_minutes:3,title:"Initial flour mix"})'),/name="target_max_minutes"/);
+const b={id:8,batch_code:'PL-ABCDE2',stage:'bulk',recipe_at_mixing:{name:'Stonefellows v1.0',flour_g:11793.4,water_g:7144.1},recipe_name:'Stonefellows v1.0',planned_steps:[{step_key:'bulk_24h',stage:'cold_bulk',title:'Cold bulk fermentation',target_min_minutes:1440,target_max_minutes:1440}],step_logs:[{step_key:'bulk_24h',started_at:'2026-10-19 10:00:00',finished_at:'2026-10-20 11:00:00',notes:'Long by one hour'}],containers:[{id:10,container_code:'PL-ABCDE2-1',mass_g:9800,temperature_f:73}],temperatures:[{measured_at:'2026-10-20 11:00:00',container_id:10,temperature_f:39,notes:'Center'}],usage:[{event_type:'balled',occurred_at:'2026-10-20 11:00:00',weight_g:9500,portions_count:40}],waste:[{occurred_at:'2026-10-20 12:00:00',weight_g:100,reason:'Trimmings'}],process_analytics:{temperature:{readings:1,min_temp_f:39,max_temp_f:39},waste:{records:1,total_g:100},used:{weight_g:0},logged_waste_share_percent:100}};
+ctx.batchMock=b;
+assert.match(x('batchProductionView(batchMock)'),/Cold bulk fermentation/);
+assert.match(x('batchProductionView(batchMock)'),/actual 1500 min/);
+assert.match(x('batchProductionView(batchMock)'),/PL-ABCDE2-1/);
+assert.match(x('batchProductionView(batchMock)'),/Daily proofing temperatures/);
+assert.match(x('batchProductionView(batchMock)'),/Record waste/);
+assert.match(x('tempForm(batchMock)'),/PL-ABCDE2-1/);
+assert.match(x('batchStepForm(batchMock,batchMock.planned_steps[0])'),/Long by one hour/);
+assert.match(x('wasteForm(batchMock)'),/Discarded weight/);
+assert.match(x('usageForm(batchMock)'),/Portioned \/ balled/);
+const older={...b,planned_steps:[],step_logs:[]};ctx.oldMock=older;
+assert.match(x('batchProductionView(oldMock)'),/No steps are being inferred retroactively/);
+console.log('PASS: named recipes, editable process targets, frozen batch step forms, temperatures, usage and waste');

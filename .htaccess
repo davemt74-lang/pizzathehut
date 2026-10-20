@@ -1,0 +1,7 @@
+Options -Indexes
+<FilesMatch "^(config\.php|bootstrap\.php|schema\.sql|README\.md|.*\.log)$">
+ Require all denied
+</FilesMatch>
+<IfModule mod_headers.c>
+ Header always set X-Content-Type-Options "nosniff"
+</IfModule>

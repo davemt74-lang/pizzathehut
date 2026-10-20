@@ -1,0 +1,9 @@
+/config.php
+/.env
+/.env.*
+/private/uploads/
+/private/*.key
+/private/*.pem
+*.log
+.DS_Store
+Thumbs.db
