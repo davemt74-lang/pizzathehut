@@ -34,9 +34,42 @@ jobs:
       - name: Check PHP files for syntax errors
         run: |
           find . -name '*.php' -type f -print0 | xargs -0 -n1 php -l
+  integration-smoke:
+    name: Disposable MySQL and HTTP kitchen workflow
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root_ci
+          MYSQL_DATABASE: pizzalab_ci
+          MYSQL_USER: pizza
+          MYSQL_PASSWORD: pizza_ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot_ci"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, curl, sodium, pdo_mysql, fileinfo
+          coverage: none
+      - name: Fresh MySQL and real team-login smoke
+        run: |
+          set -eu
+          trap 'rm -f config.php; if [ -n "${PIZZA_PID:-}" ]; then kill "$PIZZA_PID" 2>/dev/null || :; fi' EXIT
+          php tests/integration-mysql.php
+          php -S 127.0.0.1:8081 > /tmp/pizza-lab-http.log 2>&1 & PIZZA_PID=$!
+          sleep 2
+          php tests/http-smoke.php
   deploy-archive:
     name: Deployment ZIP and SHA-256
-    needs: source-validation
+    needs: [source-validation, integration-smoke]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -45,27 +78,27 @@ jobs:
           set -eu
           git ls-files | grep -Ev '^(\.github/|tests/|\.gitignore$)' > /tmp/pizza-lab-deploy-files.txt
           test -s /tmp/pizza-lab-deploy-files.txt
-          zip -q pizza-lab-v1.5.11-deploy.zip -@ < /tmp/pizza-lab-deploy-files.txt
-          unzip -tq pizza-lab-v1.5.11-deploy.zip
-          unzip -Z1 pizza-lab-v1.5.11-deploy.zip | grep -q '^agent_chat.php$'
-          unzip -Z1 pizza-lab-v1.5.11-deploy.zip | grep -q '^assets/agent_chat_camera.js$'
-          unzip -Z1 pizza-lab-v1.5.11-deploy.zip | grep -q '^assets/agent_chat_nav.js$'
-          unzip -Z1 pizza-lab-v1.5.11-deploy.zip | grep -q '^assets/agent_chat_commands.js$'
-          unzip -Z1 pizza-lab-v1.5.11-deploy.zip | grep -q '^ai_experiments.php$'
-          unzip -Z1 pizza-lab-v1.5.11-deploy.zip | grep -q '^assets/agent_chat_account.js$'
-          unzip -Z1 pizza-lab-v1.5.11-deploy.zip | grep -q '^account_lib.php$'
-          unzip -Z1 pizza-lab-v1.5.11-deploy.zip | grep -q '^upgrade.php$'
-          if unzip -Z1 pizza-lab-v1.5.11-deploy.zip | grep -Eq '(^|/)(config\.php|\.env|private/uploads/)'; then
+          zip -q pizza-lab-v1.5.12-deploy.zip -@ < /tmp/pizza-lab-deploy-files.txt
+          unzip -tq pizza-lab-v1.5.12-deploy.zip
+          unzip -Z1 pizza-lab-v1.5.12-deploy.zip | grep -q '^agent_chat.php$'
+          unzip -Z1 pizza-lab-v1.5.12-deploy.zip | grep -q '^assets/agent_chat_camera.js$'
+          unzip -Z1 pizza-lab-v1.5.12-deploy.zip | grep -q '^assets/agent_chat_nav.js$'
+          unzip -Z1 pizza-lab-v1.5.12-deploy.zip | grep -q '^assets/agent_chat_commands.js$'
+          unzip -Z1 pizza-lab-v1.5.12-deploy.zip | grep -q '^ai_experiments.php$'
+          unzip -Z1 pizza-lab-v1.5.12-deploy.zip | grep -q '^assets/agent_chat_account.js$'
+          unzip -Z1 pizza-lab-v1.5.12-deploy.zip | grep -q '^account_lib.php$'
+          unzip -Z1 pizza-lab-v1.5.12-deploy.zip | grep -q '^upgrade.php$'
+          if unzip -Z1 pizza-lab-v1.5.12-deploy.zip | grep -Eq '(^|/)(config\.php|\.env|private/uploads/)'; then
             echo 'Forbidden secret or private upload included in release' >&2
             exit 1
           fi
-          sha256sum pizza-lab-v1.5.11-deploy.zip > pizza-lab-v1.5.11-deploy.sha256
-          sha256sum -c pizza-lab-v1.5.11-deploy.sha256
+          sha256sum pizza-lab-v1.5.12-deploy.zip > pizza-lab-v1.5.12-deploy.sha256
+          sha256sum -c pizza-lab-v1.5.12-deploy.sha256
       - uses: actions/upload-artifact@v4
         with:
-          name: pizza-lab-v1.5.11-deployment
+          name: pizza-lab-v1.5.12-deployment
           path: |
-            pizza-lab-v1.5.11-deploy.zip
-            pizza-lab-v1.5.11-deploy.sha256
+            pizza-lab-v1.5.12-deploy.zip
+            pizza-lab-v1.5.12-deploy.sha256
           if-no-files-found: error
           retention-days: 90
