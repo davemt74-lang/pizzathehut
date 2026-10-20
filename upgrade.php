@@ -168,6 +168,12 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         if (!preg_match('/CREATE TABLE IF NOT EXISTS ai_recipe_proposals \(.*?\) ENGINE=InnoDB;/s',$schema,$proposalTable)) throw new RuntimeException('AI proposal schema missing');
         db()->exec($proposalTable[0]);
         $results[]='v1.5.3 AI proposal approval registry ready';
+        foreach (['workdays','workday_batch_events','workday_pizzas','visual_comparisons'] as $tableName) {
+            $pattern='/CREATE TABLE IF NOT EXISTS '.preg_quote($tableName,'/').' \(.*?\) ENGINE=InnoDB;/s';
+            if (!preg_match($pattern,$schema,$m)) throw new RuntimeException('Missing '.$tableName.' schema.');
+            db()->exec($m[0]);
+            $results[]='v1.5.4 '. $tableName .' ready';
+        }
         $results[]='v1.4.1 batch maker attribution and role-aware access verified';
     } catch (Throwable $e) {
         error_log('Pizza Lab upgrade failure: '.$e->getMessage());

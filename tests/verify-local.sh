@@ -18,3 +18,4 @@ php tests/verify-insights.php
 php tests/verify-coach.php
 
 php tests/verify-proposals.php
+php tests/verify-workdays.php
