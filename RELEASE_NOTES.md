@@ -1,3 +1,12 @@
+# Pizza Lab v1.5.16B — Proactive Foreground Kitchen Checks
+
+- Scoped to Pizza Lab only; Gelato remains independent.
+- Cook target in speech/text commands: "start timer for pizza #12 for 90 seconds".
+- Rotation (~40%), pull-back (~75%), and planned-time-elapsed (100%) **check suggestions**; physical actions require chef confirmation.
+- Server-side, restart-stable checkpoint evaluation while Agent Chat is foreground-open; deduped agent_alert cooking events and per-account delivery receipts.
+- Chat notices and user-enabled spoken reminders; no guarantee for locked phones, closed browsers, or voice autoplay.
+- New additive MySQL reminder tables and authenticated HTTP tests; run upgrade.php after backup.
+
 # Pizza Lab v1.5.16A — Persistent Kitchen Activity
 
 - Server-authoritative cooking timer state, UTC elapsed timing and authenticated kitchen snapshot reads.
