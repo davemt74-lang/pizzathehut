@@ -5,7 +5,9 @@ auth();
 require_once __DIR__.'/batch_tracking.php';
 require_once __DIR__.'/team.php';
 require_once __DIR__.'/experiments.php';
+require_once __DIR__.'/ai_experiments.php';
 require_once __DIR__.'/batch_ai.php';
+require_once __DIR__.'/ai_proposals.php';
 header('Cache-Control: no-store');
 try {
     $action=(string)($_GET['action'] ?? $_POST['action'] ?? '');
@@ -15,7 +17,7 @@ try {
             $recipeSteps=query('SELECT * FROM recipe_steps ORDER BY recipe_id,sort_order,id')->fetchAll();
             $batches=query("SELECT b.*,r.name AS recipe_name, maker.display_name AS made_by_name, recorder.display_name AS recorded_by_name,a.pizza_tests,a.avg_bake_s,a.avg_stone_f,a.avg_sauce_g,a.avg_cheese_g,a.avg_rise,a.avg_crisp,a.avg_color FROM dough_batches b JOIN recipes r ON r.id=b.recipe_id LEFT JOIN users maker ON maker.id=b.made_by_user_id LEFT JOIN users recorder ON recorder.id=b.recorded_by_user_id LEFT JOIN (SELECT batch_id,COUNT(*) AS pizza_tests,AVG(bake_seconds) AS avg_bake_s,AVG(stone_start_f) AS avg_stone_f,AVG(sauce_g) AS avg_sauce_g,AVG(cheese_g) AS avg_cheese_g,AVG(rim_rise_score) AS avg_rise,AVG(crispness_score) AS avg_crisp,AVG(bottom_color_score) AS avg_color FROM evidence WHERE batch_id IS NOT NULL GROUP BY batch_id) a ON a.batch_id=b.id ORDER BY (b.stage='archived'),b.created_at DESC,b.id DESC LIMIT 500")->fetchAll();
             $evidence=query('SELECT e.*,r.name AS recipe_name,b.batch_code AS batch_code FROM evidence e LEFT JOIN recipes r ON r.id=e.recipe_id LEFT JOIN dough_batches b ON b.id=e.batch_id ORDER BY e.created_at DESC,e.id DESC LIMIT 100')->fetchAll();
-            $counts=['recipes'=>count($recipes),'tests'=>(int)db()->query('SELECT COUNT(*) FROM evidence')->fetchColumn(),'photos'=>(int)db()->query("SELECT COUNT(*) FROM media WHERE kind IN ('top','bottom','side')")->fetchColumn(),'batches'=>(int)db()->query('SELECT COUNT(*) FROM dough_batches')->fetchColumn()];
+            $counts=['recipes'=>count($recipes),'tests'=>(int)db()->query('SELECT COUNT(*) FROM evidence')->fetchColumn(),'photos'=>(int)db()->query("SELECT COUNT(*) FROM media WHERE kind IN ('top','bottom','side','crumb')")->fetchColumn(),'batches'=>(int)db()->query('SELECT COUNT(*) FROM dough_batches')->fetchColumn()];
             json_out(['ok'=>true,'recipes'=>$recipes,'recipe_steps'=>$recipeSteps,'batches'=>$batches,'batch_makers'=>query('SELECT id,display_name,is_active FROM users ORDER BY display_name,id')->fetchAll(),'evidence'=>$evidence,'counts'=>$counts,'voice_profile'=>query('SELECT profile_name,wake_phrase,language,voice_uri,voice_rate,require_wake,start_alias FROM voice_profiles WHERE user_id=?',[auth()])->fetch() ?: null,'experiments'=>lab_experiments(),'settings'=>['model'=>setting('model','claude-haiku-5-5'),'key_configured'=>setting('claude_key')!=='']]);
         }
         if ($action==='teamUsers') {
@@ -29,6 +31,7 @@ try {
         }
         if ($action==='experimentDetail') { json_out(['ok'=>true,'report'=>lab_experiment_detail((int)($_GET['id']??0))]); }
         if ($action==='labAnalytics') { json_out(['ok'=>true,'analytics'=>lab_recipe_analytics()]); }
+        if ($action==='experimentReviews') { json_out(['ok'=>true,'reviews'=>lab_ai_prior_reviews((int)($_GET['id']??0))]); }
         if ($action==='batchDetail') {
             $id=(int)($_GET['id']??0);$batch=row_owned('dough_batches',$id);
             $batch['recipe_name']=query('SELECT name FROM recipes WHERE id=?',[$batch['recipe_id']])->fetchColumn();
@@ -69,8 +72,11 @@ try {
         query('UPDATE users SET password_hash=? WHERE id=?',[password_hash($pwd,PASSWORD_DEFAULT),(int)$u['id']]);
         json_out(['ok'=>true]);
     }
+    if ($action==='generateProposal') { json_out(['ok'=>true,...lab_generate_proposal($d)]); }
+    if ($action==='decideProposal') { json_out(['ok'=>true,...lab_decide_proposal($d)]); }
     if ($action==='batchCoachAsk') {json_out(['ok'=>true,'review'=>lab_coach_ask($d)]);}
     if ($action==='createExperiment') { json_out(['ok'=>true,'id'=>lab_create_experiment($d)]); }
+    if ($action==='reviewExperiment') { json_out(['ok'=>true,'review'=>lab_ai_review_experiment((int)($d['id']??0))]); }
     if ($action==='updateExperiment') { lab_update_experiment($d); json_out(['ok'=>true]); }
     if ($action==='saveRecipe') {
         $id=(int)($d['id']??0);
@@ -252,7 +258,7 @@ try {
     }
     if ($action==='upload') {
         $id=(int)($d['evidence_id']??0);row_owned('evidence',$id);
-        $kind=(string)($d['kind']??'');if (!in_array($kind,['top','bottom','side','scan','audio'],true)) fail('Invalid media type');
+        $kind=(string)($d['kind']??'');if (!in_array($kind,['top','bottom','side','crumb','scan','audio'],true)) fail('Invalid media type');
         if (empty($_FILES['file']) || $_FILES['file']['error']!==UPLOAD_ERR_OK) fail('Upload failed. Check PHP upload_max_filesize and post_max_size.');
         $file=$_FILES['file']; $max=$kind==='audio'?15000000:6500000;
         if ($file['size']<=0 || $file['size']>$max) fail('File too large. Photos up to 6.5 MB, audio up to 15 MB.');
@@ -310,7 +316,7 @@ try {
         $batchEvents=$batch===null?[]:query('SELECT phase,occurred_at,temperature_f,note FROM dough_batch_events WHERE batch_id=? ORDER BY occurred_at DESC LIMIT 25',[$batch['id']])->fetchAll();
         $batchStats=$batch===null?null:query('SELECT COUNT(*) AS pizza_count, AVG(bake_seconds) AS avg_bake_s,AVG(stone_start_f) AS avg_stone_f FROM evidence WHERE batch_id=?',[$batch['id']])->fetch();
         $processInfo=$batch===null?null:['planned_steps'=>$batch['process_steps_snapshot']?json_decode($batch['process_steps_snapshot'],true):null,'step_actuals'=>query('SELECT step_key,started_at,finished_at,actual_amount_g,actual_temp_f,notes FROM batch_step_logs WHERE batch_id=?',[$batch['id']])->fetchAll(),'temperature_history'=>query('SELECT measured_at,container_id,temperature_f FROM batch_temperature_readings WHERE batch_id=? ORDER BY measured_at DESC LIMIT 30',[$batch['id']])->fetchAll(),'usage_waste'=>lab_batch_analytics((int)$batch['id'])];
-        $media=$kind==='live' ? query("SELECT * FROM media WHERE evidence_id=? AND kind='scan' ORDER BY id DESC LIMIT 1",[$id])->fetchAll() : query("SELECT * FROM media WHERE evidence_id=? AND kind IN ('top','bottom','side') ORDER BY id DESC LIMIT 30",[$id])->fetchAll();
+        $media=$kind==='live' ? query("SELECT * FROM media WHERE evidence_id=? AND kind='scan' ORDER BY id DESC LIMIT 1",[$id])->fetchAll() : query("SELECT * FROM media WHERE evidence_id=? AND kind IN ('top','bottom','side','crumb') ORDER BY id DESC LIMIT 30",[$id])->fetchAll();
         if ($kind==='evidence') { $seen=[]; $media=array_values(array_filter($media,function($m)use(&$seen){if(isset($seen[$m['kind']]))return false;$seen[$m['kind']]=true;return true;})); }
         if (!$media) fail('Add a scan or photo first.');
         $prompt='You are an expert pizza dough and wood-fired oven coach. Analyze visible evidence conservatively. NO temperature measurement from photos. NO definitive internal doneness or food safety claims. Clearly distinguish observed pixels versus hypotheses. Be alert to glare, steam, fire reflections and under/overexposure. Use short actionable suggestions for oven spring, crispness, char, bottom color and sauce moisture. Treat every null value as NOT MEASURED and do not invent a recipe or bake duration. Cheese moisture is a subjective 1=driest to 10=wettest score. More complete evidence can justify more specific advice. A human makes all oven decisions. Reply only as JSON with keys: summary (string), confidence (low/medium/high), visual_findings (array of up to 4 strings), suggestions (array of up to 4 strings), warning (string or empty), turn_now (boolean; only true if clearly urgent uneven browning is visible).';
