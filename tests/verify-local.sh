@@ -67,3 +67,5 @@ node tests/verify-chat-kitchen.js
 
 node tests/verify-chat-cooking.js
 php tests/verify-chat-cooking.php
+
+php tests/verify-exact-scan.php
