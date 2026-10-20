@@ -16,3 +16,8 @@
 .step-body{min-width:0;flex:1}.step-body .between{flex-wrap:wrap;gap:10px}.step-body h3{overflow-wrap:anywhere}.step-body p{margin:10px 0}
 .step-body .mt{margin-top:12px}
 @media(max-width:550px){.process-step{padding:12px;gap:9px}.step-index{flex-basis:29px;height:29px}.step-body .flex button{flex:1 1 90px}}
+
+/* v1.5.1 analytics link follows the same navigation treatment as section buttons. */
+#mainNav .analytics-nav { display:block; text-decoration:none; padding:12px 15px; color:var(--muted, #b5c2cf); border-radius:11px; font-weight:600; }
+#mainNav .analytics-nav:hover { background:rgba(255,255,255,.09); color:inherit; }
+#mainNav .analytics-nav span { margin-right:10px; }
