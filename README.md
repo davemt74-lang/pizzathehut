@@ -1,3 +1,24 @@
+# Pizza Lab v1.5.16E — Integrated Kitchen Awareness
+
+**Purpose:** Make the standalone Pizza Lab agent aware of the actual current kitchen activity when a chef asks for help. The Claude coaching path now receives a **bounded, timestamped, read-only MySQL snapshot** of the signed-in chef's active dough guide(s) and the team's active pizza timer(s), alongside existing measured historical evidence. It includes the next persisted dough step, elapsed timer state, planned target, advisory reminder events and **only actual chef-confirmed physical movements from the current timer run**. This enables questions such as “What's happening with the dough batch?” and “How long has the pizza been cooking?” without claiming the agent physically did something.
+
+A new authenticated GET endpoint, `api.php?action=chatKitchenAwareness`, exposes the same bounded snapshot to the existing UI and can be used for troubleshooting. It **does not mutate records**. Agent coaching remains read-only; actions such as starting a timer, creating a batch or advancing a step still use separate deterministic commands and explicit confirmation. Advice and reminders must not be conflated with proof. The snapshot is obtained when the chef requests coaching; it is not a persistent LLM background listener or a closed-browser notifier. Elapsed times may change between request and answer.
+
+**Certification:** PHP 8.2/8.3/8.4 syntax and source contracts, Node voice/command and UI integration regression tests, disposable MySQL 8/PHP HTTP login tests, account isolation, timer stop/restart provenance and release ZIP/checksum. No new database table in v1.5.16E. A device-level acceptance checklist is included below; *physical iPhone, speech synthesis and real oven tests cannot be certified by GitHub Actions*.
+
+## Physical kitchen acceptance checklist (pending manual verification)
+
+- On a real iPhone Safari session over HTTPS, tap the mic, request the current batch step and confirm the correct spoken/visible recipe step; deny mic access and verify text fallback.
+- Start a pizza timer with an explicit cooking target; cross-check the elapsed time against a physical stopwatch and a second signed-in browser/device. Reload the page while timer is running.
+- Observe rotation/pull-back/time-up advisory checkpoints while the app remains foreground-visible. Verify that no movement is marked completed until the chef explicitly confirms it.
+- Lock the iPhone and return to the app; verify that the microphone is off, pending confirmations are canceled, the current batch step is restored, and missed reminders are not fabricated as delivered.
+- Ask the agent for active kitchen state; confirm it identifies the correct batch/step and active timer, distinguishes chef-confirmed actions from automated alerts, and explicitly notes missing observations.
+- Test network disconnect/reconnect, multiple active pizza timers and two simultaneously open chef devices. Ensure no duplicate records or unexpected voice autoplay.
+
+**Deployment:** Back up MySQL, `config.php`, and private uploads. Deploy the versioned package without replacing those private files. From an earlier version, use `upgrade.php` as Super Admin after taking the backup. Pizza Lab remains standalone, with no Gelato integration.
+
+---
+
 # Pizza Lab v1.5.16D — Voice and Kitchen Continuity
 
 Section D extends the *optional* dough production flow inside Agent Chat without turning it into the primary interface. The chat now **loads its batch workflow script**, fixing a missing script link in the previous release. It supports spoken requests like **"Pizza, read the current step"**, **"read ingredients"**, **"step done"**, and—only after a specific pending confirmation—**"confirm step"**. Starting a batch by voice similarly previews a saved recipe and requires a separate **"confirm batch creation"** command or a deliberate button press. Saying "yes" alone never modifies the database.
