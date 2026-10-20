@@ -1,4 +1,22 @@
-# Pizza Lab v1.5.11 — Minimal Chat + Team Account Menu
+# Pizza Lab v1.5.12 — Kitchen Conversation Reliability
+
+**Latest release:** v1.5.12 on `main` — Sections A–D merged (PRs #14–#17). The primary interface is a one-page chat with hamburger navigation, account controls, microphone and camera in the sticky footer.
+
+## What changed in v1.5.12
+
+- **Conversation:** Bounded, per-user saved discussions and up to six prior turns for follow-up context, with collapsible evidence and rate/cost safeguards.
+- **Voice:** Push-to-talk microphone states, speech interruption and recovery after errors. Browsers must support speech recognition and grant microphone permission over HTTPS.
+- **Camera:** Embedded pizza tracker chooses a pizza record from the selected batch only when exactly one eligible evidence record matches; otherwise the chef chooses explicitly. Box correction, image upload and Claude requests are still under user control.
+- **Certification:** PHP 8.2/8.3/8.4 and Node contract checks; disposable MySQL 8.0 schema replay and seeded account tests; authenticated HTTP login, CSRF, permissions and chat/camera smoke; verified deploy ZIP/SHA-256.
+- **Not yet certified:** Production upgrade, live Claude API responses, iPhone Safari microphone/camera behavior, and actual oven measurements. The MySQL/HTTP CI tests are backend integration smoke checks, not physical-device acceptance.
+
+**Existing installation:** Back up the database, `config.php` and private uploads before deploying. There is no new database migration for v1.5.12. Never overwrite your production secrets or photo uploads.
+
+For earlier features and installation details, see the history below.
+
+---
+
+## Previous release — v1.5.11 (minimal chat and account menu)
 
 The home screen remains one **chat-first page**. Its header has a hamburger button for existing tools and a compact account dropdown. The fixed composer has microphone, camera, text and Send. Camera tracking stays inside chat. Recipes, workdays, ovens, gallery and admin screens remain available from the hamburger.
 
