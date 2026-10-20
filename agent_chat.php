@@ -10,7 +10,7 @@ $user=auth_user();
 $voiceProfile=query('SELECT profile_name,wake_phrase,language,voice_uri,voice_rate,require_wake,start_alias FROM voice_profiles WHERE user_id=?',[auth()])->fetch() ?: [];
 $account=['display_name'=>$user['display_name'],'email'=>$user['email'],'role'=>$user['role']];
 $initial=strtoupper(function_exists('mb_substr') ? mb_substr((string)$user['display_name'],0,1) : substr((string)$user['display_name'],0,1));
-?><!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#10151c"><title>Agent Chat · Pizza Lab</title><link rel="stylesheet" href="assets/style.css?v=1.5.11"><style>
+?><!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#10151c"><title>Agent Chat · Pizza Lab</title><link rel="stylesheet" href="assets/style.css?v=1.5.12"><style>
 :root{--edge:rgba(148,175,189,.18)}
 body{margin:0}.coach{max-width:930px;margin:0 auto;padding:12px 14px 140px;min-height:100dvh}
 .coach-top{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:8px 0 12px}
@@ -24,7 +24,7 @@ body{margin:0}.coach{max-width:930px;margin:0 auto;padding:12px 14px 140px;min-h
 .coach-message{border:1px solid var(--edge);background:rgba(105,145,165,.06);padding:15px 18px;border-radius:17px;max-width:100%;overflow-wrap:anywhere}
 .coach-message h3{font-size:.91rem;margin:14px 0 6px}
 .coach-message p,.coach-message li{line-height:1.55}
-.coach-message ul{padding-left:20px}.coach-message small{opacity:.6}
+.coach-message ul{padding-left:20px}.coach-message small{opacity:.6}.coach-user{align-self:flex-end;max-width:min(82%,670px);background:#283b46;border-radius:17px 17px 4px 17px;padding:11px 16px}.coach-user p{margin:2px 0}.coach-answer{align-self:flex-start;max-width:100%}.coach-answer details{margin-top:10px}.coach-answer summary{cursor:pointer;color:#bedacb}
 .coach-form{position:fixed;z-index:5;bottom:0;left:0;right:0;margin:0 auto;max-width:930px;padding:12px 14px max(12px,env(safe-area-inset-bottom));background:linear-gradient(0deg,#10151c 80%,#10151ced 100%);border-top:1px solid var(--edge)}
 .coach-inputbar{display:flex;align-items:end;gap:8px;border:1px solid #52616d;border-radius:21px;padding:7px 8px;background:#1a2530}
 .coach-inputbar textarea{flex:1;min-width:0;max-height:125px;min-height:40px;resize:vertical;border:0;outline:none;background:transparent;color:#fff;padding:9px 4px}
@@ -155,13 +155,25 @@ const el=id=>document.getElementById(id);
 function context(){return {scope:el('scope').value,target_id:el('scope').value==='all'?null:el('target').value};}
 function choose(preset){const t=el('target'),scope=el('scope').value,items=scope==='batch'?BATCHES:RECIPES;t.replaceChildren();for(const x of items){const opt=document.createElement('option');opt.value=x.id;opt.textContent=scope==='batch'?x.batch_code+' · '+x.recipe_name:x.name;t.append(opt);}if(preset&&items.some(x=>String(x.id)===preset))t.value=preset;el('targetRow').hidden=scope==='all';el('coachHistory').replaceChildren();}
 function addText(parent,tag,value){const node=document.createElement(tag);node.textContent=String(value??'');parent.append(node);return node;}
-function show(report){const a=report.analysis||{},article=document.createElement('article');article.className='coach-message';addText(article,'small',String(report.created_at||'New analysis')+' · '+(report.model||'Claude')+' · confidence '+(a.confidence||'low'));addText(article,'h3','You asked');addText(article,'p',report.question||'');addText(article,'h3','Agent recommendation');addText(article,'p',a.summary||'No summary');
-for(const group of [['Measured observations','measured_findings'],['Possible mechanisms (not proven)','hypotheses'],['Suggested controlled experiments','next_tests'],['Missing evidence / caveats','limitations'],['Supporting batch codes and evidence','evidence_references']]){if(!Array.isArray(a[group[1]])||!a[group[1]].length)continue;addText(article,'h3',group[0]);const ul=document.createElement('ul');for(const v of a[group[1]])addText(ul,'li',v);article.append(ul);}el('coachHistory').append(article);}
-async function loadHistory(){const c=context(),qs=new URLSearchParams({action:'batchCoachHistory',scope:c.scope});if(c.target_id)qs.set('target_id',c.target_id);const r=await fetch('api.php?'+qs,{credentials:'same-origin'}),d=await r.json();if(!r.ok||!d.ok)throw Error(d.error||'History unavailable');el('coachHistory').replaceChildren();if(!d.reviews.length)addText(el('coachHistory'),'p','No reviews for this selection. Ask Claude to compare recorded measurements.');for(const x of d.reviews)show(x);}
+function show(report){
+ const a=report.analysis||{},log=el('coachHistory');
+ const user=document.createElement('article');user.className='coach-message coach-user';addText(user,'p',report.question||'');log.append(user);
+ const article=document.createElement('article');article.className='coach-message coach-answer';
+ addText(article,'small',String(report.created_at||'New analysis')+' · confidence '+(a.confidence||'low'));
+ addText(article,'p',a.summary||'No summary');
+ const details=document.createElement('details');const summary=document.createElement('summary');summary.textContent='Evidence and reasoning';details.append(summary);
+ for(const group of [['Measured observations','measured_findings'],['Possible mechanisms (not proven)','hypotheses'],['Suggested controlled experiments','next_tests'],['Missing evidence / caveats','limitations'],['Supporting batch codes and evidence','evidence_references']]){
+  if(!Array.isArray(a[group[1]])||!a[group[1]].length)continue;
+  addText(details,'h3',group[0]);const ul=document.createElement('ul');for(const v of a[group[1]])addText(ul,'li',v);details.append(ul);
+ }
+ if(details.children.length>1)article.append(details);
+ log.append(article);
+}
+async function loadHistory(){const c=context(),qs=new URLSearchParams({action:'batchCoachHistory',scope:c.scope});if(c.target_id)qs.set('target_id',c.target_id);const r=await fetch('api.php?'+qs,{credentials:'same-origin'}),d=await r.json();if(!r.ok||!d.ok)throw Error(d.error||'History unavailable');el('coachHistory').replaceChildren();if(!d.reviews.length)addText(el('coachHistory'),'p','Ask me about any dough batch, recipe, or cooking result.');for(const x of d.reviews)show(x);}
 el('scope').addEventListener('change',()=>{choose();loadHistory().catch(e=>el('coachStatus').textContent=e.message);});
 el('target').addEventListener('change',()=>loadHistory().catch(e=>el('coachStatus').textContent=e.message));
 el('coachForm').addEventListener('submit',async ev=>{ev.preventDefault();
 if(await window.pizzaChatCommands?.(el('question').value)){el('question').value='';return;}
 const button=el('send');button.disabled=true;el('coachStatus').textContent='Analyzing available evidence…';try{const r=await fetch('api.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF},body:JSON.stringify({action:'batchCoachAsk',...context(),question:el('question').value})});const d=await r.json();if(!r.ok||!d.ok)throw Error(d.error||'Claude request failed');show(d.review);window.dispatchEvent(new CustomEvent('pizza-chat-reply',{detail:{text:d.review?.analysis?.summary||''}}));el('question').value='';el('coachStatus').textContent='Report saved from '+d.review.snapshot_batches+' batch(es). No automatic changes.';window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});}catch(e){el('coachStatus').textContent=e.message;}finally{button.disabled=false;}});
 choose(FIRST);loadHistory().catch(e=>el('coachStatus').textContent=e.message);
-</script><script defer src="assets/agent_chat_nav.js?v=1.5.11"></script><script defer src="assets/agent_chat_commands.js?v=1.5.11"></script><script defer src="assets/agent_chat_camera.js?v=1.5.11"></script><script defer src="assets/agent_chat_voice.js?v=1.5.11"></script><script defer src="assets/agent_chat_account.js?v=1.5.11"></script></body></html>
+</script><script defer src="assets/agent_chat_nav.js?v=1.5.12"></script><script defer src="assets/agent_chat_commands.js?v=1.5.12"></script><script defer src="assets/agent_chat_camera.js?v=1.5.12"></script><script defer src="assets/agent_chat_voice.js?v=1.5.12"></script><script defer src="assets/agent_chat_account.js?v=1.5.12"></script></body></html>
