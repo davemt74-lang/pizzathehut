@@ -512,3 +512,18 @@ CREATE TABLE IF NOT EXISTS kitchen_environment_readings (
  observed_at DATETIME NOT NULL,
  CONSTRAINT fk_kitchen_env_action FOREIGN KEY (action_id) REFERENCES chat_kitchen_actions(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
+
+-- v1.5.16A: restart-safe shared cooking timers; evidence-row locking serializes actions.
+CREATE TABLE IF NOT EXISTS kitchen_activity_timers (
+ evidence_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+ status ENUM('running','paused','stopped') NOT NULL DEFAULT 'stopped',
+ started_at DATETIME(6) NULL,
+ accumulated_ms BIGINT UNSIGNED NOT NULL DEFAULT 0,
+ target_seconds INT UNSIGNED NULL,
+ revision BIGINT UNSIGNED NOT NULL DEFAULT 1,
+ updated_by_user_id BIGINT UNSIGNED NOT NULL,
+ updated_at DATETIME(6) NOT NULL,
+ INDEX idx_kitchen_timer_status (status,updated_at),
+ CONSTRAINT fk_kitchen_timer_pizza FOREIGN KEY (evidence_id) REFERENCES evidence(id) ON DELETE CASCADE,
+ CONSTRAINT fk_kitchen_timer_user FOREIGN KEY (updated_by_user_id) REFERENCES users(id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
