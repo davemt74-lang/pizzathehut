@@ -64,3 +64,6 @@ php tests/verify-workday-coaching.php
 
 php tests/verify-chat-kitchen.php
 node tests/verify-chat-kitchen.js
+
+node tests/verify-chat-cooking.js
+php tests/verify-chat-cooking.php

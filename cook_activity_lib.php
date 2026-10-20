@@ -9,8 +9,8 @@ function lab_cook_activity(string $event, string $source, mixed $seconds, mixed 
       'time_left_reminder'=>['agent_alert'], 'time_up_reminder'=>['agent_alert'],
       'photo_captured'=>['camera','voice_command'], 'analysis_complete'=>['system'],
       'visual_turn_suggestion'=>['ai_suggestion'],
-      'pull_back_confirmed'=>['manual'], 'rotation_confirmed'=>['manual'],
-      'pizza_finished'=>['manual']
+      'pull_back_confirmed'=>['manual','voice_command'], 'rotation_confirmed'=>['manual','voice_command'],
+      'pizza_finished'=>['manual','voice_command']
     ];
     if(!array_key_exists($event,$types)||!in_array($source,$types[$event],true)) throw new InvalidArgumentException('Unrecognized cooking activity or source.');
     $class = in_array($event,['pull_back_reminder','rotation_reminder','time_left_reminder','time_up_reminder'],true) ? 'reminder' : ($event==='visual_turn_suggestion'?'suggestion':'observed');
