@@ -1,4 +1,4 @@
-/* Pizza Lab kitchen voice: one live recognizer, explicit user gesture, no background retries. */
+/* Pizza Lab v1.5.16D: one voice controller for chat and user-requested kitchen narration. */
 (()=>{'use strict';
  const mic=document.getElementById('chatMic'),camera=document.getElementById('chatCamera');
  const input=document.getElementById('question'),form=document.getElementById('coachForm'),status=document.getElementById('coachStatus');
@@ -14,6 +14,26 @@
  function interruptSpeech(){
    utteranceActive=null;speaking=false;
    if(window.speechSynthesis)try{window.speechSynthesis.cancel();}catch{}
+ }
+ function speakText(raw){
+  const text=String(raw||'').trim().slice(0,1100);
+  if(!text)return false;
+  if(document.visibilityState==='hidden'||!window.speechSynthesis||typeof SpeechSynthesisUtterance!=='function'){
+   label('Spoken instructions unavailable. Read the saved step in chat.');return false;
+  }
+  if(active){label('Microphone is listening. Finish speaking before playing instructions.');return false;}
+  try{
+   interruptSpeech();
+   const u=new SpeechSynthesisUtterance(text),settings=window.PIZZA_CHAT_VOICE||{};
+   u.rate=Math.max(.6,Math.min(1.5,Number(settings.voice_rate)||.95));
+   const preferred=(window.speechSynthesis.getVoices?.()||[]).find(v=>v.voiceURI===settings.voice_uri);
+   if(preferred)u.voice=preferred;
+   utteranceActive=u;speaking=true;label('Agent speaking · Tap mic to interrupt.');
+   u.onend=()=>{if(utteranceActive!==u)return;utteranceActive=null;speaking=false;label('Ready · Tap mic to speak');};
+   u.onerror=()=>{if(utteranceActive!==u)return;utteranceActive=null;speaking=false;label('Speech playback unavailable · Instructions remain in chat');};
+   window.speechSynthesis.speak(u);
+   return true;
+  }catch{interruptSpeech();label('Speech playback unavailable · Instructions remain in chat');return false;}
  }
  function start(){
   if(!SpeechRecognition){label('Speech recognition is unavailable here; type a question instead.');return;}
@@ -45,21 +65,12 @@
  camera.addEventListener('click',()=>{if(active)stop();window.dispatchEvent(new Event('pizza-chat-camera-toggle'));});
  window.addEventListener('pizza-chat-local-command',()=>{voiceQuestion=false;});
  window.addEventListener('pizza-chat-reply-error',()=>{voiceQuestion=false;if(active)stop();label('Unable to answer. Tap mic or type to retry.');});
+ window.addEventListener('pizza-chat-speak-request',e=>{voiceQuestion=false;speakText(e.detail?.text||'');});
  window.addEventListener('pizza-chat-reply',e=>{
    if(!voiceQuestion)return;voiceQuestion=false;
-   const text=String(e.detail?.text||'').trim().slice(0,1100);if(!text)return;
-   if(!window.speechSynthesis){label('Reply saved · Speech playback unavailable');return;}
-   try{
-     interruptSpeech();
-     const u=new SpeechSynthesisUtterance(text);const settings=window.PIZZA_CHAT_VOICE||{};
-     u.rate=Math.max(.6,Math.min(1.5,Number(settings.voice_rate)||.95));
-     const preferred=(window.speechSynthesis.getVoices?.()||[]).find(v=>v.voiceURI===settings.voice_uri);if(preferred)u.voice=preferred;
-     utteranceActive=u;speaking=true;label('Agent speaking. Tap mic to interrupt.');
-     u.onend=()=>{if(utteranceActive!==u)return;utteranceActive=null;speaking=false;label('Ready · Tap mic to ask again');};
-     u.onerror=()=>{if(utteranceActive!==u)return;utteranceActive=null;speaking=false;label('Reply saved · Playback unavailable');};
-     window.speechSynthesis.speak(u);
-   }catch{interruptSpeech();label('Reply saved · Playback unavailable');}
+   speakText(e.detail?.text||'');
  });
- document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&active)stop('Mic paused. Return to Pizza Lab to speak again.');});
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){if(active)stop('Mic paused. Return to Pizza Lab to speak again.');interruptSpeech();}});
  window.addEventListener('pagehide',()=>{stop();interruptSpeech();});
+ window.addEventListener('pizza-chat-camera-open',interruptSpeech);
 })();
