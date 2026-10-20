@@ -59,3 +59,5 @@ php tests/verify-upgrade-preservation.php
 
 php tests/verify-workday-context.php
 node --check assets/agent_chat_workday.js
+
+php tests/verify-workday-coaching.php

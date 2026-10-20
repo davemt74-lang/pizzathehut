@@ -11,6 +11,7 @@ function chooseBatch(batch){const scope=$('scope'),target=$('target');if(!scope|
  if(typeof loadHistory==='function')loadHistory().catch(e=>{$('coachStatus').textContent=e.message;});
 }
 function render(data){
+ window.pizzaChatSelectedWorkdayId=data.state==='single'?Number(data.day.id):null;
  panel.replaceChildren();panel.hidden=false;
  const title=text('strong',"Today's workday");panel.append(title);
  if(data.state==='none'){
@@ -29,6 +30,11 @@ function render(data){
  if(data.batches.length===0)action.append(text('span','No batch activity recorded.'));
  else for(const b of data.batches)action.append(button('Use '+b.batch_code,()=>chooseBatch(b)));
  panel.append(action);
+ const tip=data.coaching;
+ if(tip?.note){
+   const n=text('div','Suggestion · '+String(tip.note));n.className='ctx-tip';panel.append(n);
+   if(tip.question&&tip.batch_id)panel.append(button('Ask agent',()=>{const found=(window.BATCHES||BATCHES).find(v=>Number(v.id)===Number(tip.batch_id));if(!found)return;chooseBatch(found);ask(String(tip.question));}));
+ }
  if(data.pizzas.length)panel.append(text('small',data.pizzas.length+' linked pizza test(s) · Crispness '+(data.avg_crispness===null?'not rated':data.avg_crispness+'/10 from '+data.rated_crispness+' rated')));
 }
 async function load(selectedId){
@@ -39,6 +45,8 @@ async function load(selectedId){
  render(json.context);
  }catch(err){panel.hidden=false;panel.replaceChildren();panel.append(text('span','Workday context unavailable. '));panel.append(button('Retry',()=>load()));}
 }
+window.pizzaChatLocalWorkdayDate=()=>today;
+window.pizzaChatSelectedWorkdayId=null;
 window.pizzaChatRefreshWorkday=()=>load();
 load();
 })();
