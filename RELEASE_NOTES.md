@@ -1,3 +1,11 @@
+# Pizza Lab v1.5.6 — Measured Cooking Heat Map
+
+- New oven-linked pizza cooking sessions and manually observed oven positions.
+- Record optional exact elapsed times, IR stone temperatures, named zones and chronological cooking events.
+- View actual zone readings and distinct pizzas per zone, plus scored crispness, rise, and bottom color; missing metrics remain unknown.
+- Bounded cooking history is made available to the existing Claude Agent Chat, labeled as observational.
+- SQL migration and regression checks included. Source tests do not certify live MySQL, iPhone camera or Claude API.
+
 # Pizza Lab v1.5.5 — Dough Readiness & Oven/Cooking Evidence
 
 - Added dough readiness observations for recipe-linked batches, with container temperatures and evidence-confidence caveats.

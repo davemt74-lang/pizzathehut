@@ -432,3 +432,35 @@ CREATE TABLE IF NOT EXISTS pizza_tracker_boxes (
  CONSTRAINT fk_tracker_evidence FOREIGN KEY (evidence_id) REFERENCES evidence(id) ON DELETE CASCADE,
  CONSTRAINT fk_tracker_author FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
+
+-- v1.5.6: a pizza is explicitly assigned to one oven; position history is optional.
+CREATE TABLE IF NOT EXISTS oven_cook_sessions (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ oven_layout_id BIGINT UNSIGNED NOT NULL,
+ evidence_id BIGINT UNSIGNED NOT NULL UNIQUE,
+ notes VARCHAR(1000) NOT NULL DEFAULT '',
+ created_by_user_id BIGINT UNSIGNED NOT NULL,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ INDEX idx_oven_session (oven_layout_id,created_at),
+ CONSTRAINT fk_cook_oven FOREIGN KEY (oven_layout_id) REFERENCES oven_layouts(id) ON DELETE RESTRICT,
+ CONSTRAINT fk_cook_pizza FOREIGN KEY (evidence_id) REFERENCES evidence(id) ON DELETE CASCADE,
+ CONSTRAINT fk_cook_user FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS oven_cook_events (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ session_id BIGINT UNSIGNED NOT NULL,
+ phase ENUM('launch','initial_puff','pull_back','rotate','finish','check') NOT NULL,
+ zone_key VARCHAR(28) NOT NULL,
+ zone_name VARCHAR(80) NOT NULL,
+ x_norm DECIMAL(6,4) NOT NULL,
+ y_norm DECIMAL(6,4) NOT NULL,
+ elapsed_seconds INT UNSIGNED NULL,
+ stone_f DECIMAL(7,2) NULL COMMENT 'Actual user-entered IR stone reading, never inferred',
+ notes VARCHAR(1000) NOT NULL DEFAULT '',
+ observed_at DATETIME NOT NULL,
+ recorded_by_user_id BIGINT UNSIGNED NOT NULL,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ INDEX idx_cook_event (session_id,observed_at,id),
+ CONSTRAINT fk_cook_event_session FOREIGN KEY (session_id) REFERENCES oven_cook_sessions(id) ON DELETE CASCADE,
+ CONSTRAINT fk_cook_event_user FOREIGN KEY (recorded_by_user_id) REFERENCES users(id) ON DELETE RESTRICT
+) ENGINE=InnoDB;

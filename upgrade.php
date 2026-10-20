@@ -181,6 +181,13 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             db()->exec($m[0]);
             $results[]='v1.5.5 '.$tableName.' ready';
         }
+        // v1.5.6: create-only cooking position history. Every temperature is measured, never inferred.
+        foreach (['oven_cook_sessions','oven_cook_events'] as $tableName) {
+            $pattern='/CREATE TABLE IF NOT EXISTS '.preg_quote($tableName,'/').' \(.*?\) ENGINE=InnoDB;/s';
+            if (!preg_match($pattern,$schema,$m)) throw new RuntimeException('Missing '.$tableName.' schema.');
+            db()->exec($m[0]);
+            $results[]='v1.5.6 '.$tableName.' ready';
+        }
         $results[]='v1.4.1 batch maker attribution and role-aware access verified';
     } catch (Throwable $e) {
         error_log('Pizza Lab upgrade failure: '.$e->getMessage());
