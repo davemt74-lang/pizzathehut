@@ -552,3 +552,37 @@ CREATE TABLE IF NOT EXISTS kitchen_reminder_receipts (
  CONSTRAINT fk_kitchen_receipt_reminder FOREIGN KEY (reminder_id) REFERENCES kitchen_timer_reminders(id) ON DELETE CASCADE,
  CONSTRAINT fk_kitchen_receipt_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
+
+-- v1.5.16C: independently resumable, chef-confirmed chat batch sessions
+CREATE TABLE IF NOT EXISTS chat_batch_sessions (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ batch_id BIGINT UNSIGNED NOT NULL UNIQUE,
+ recipe_id BIGINT UNSIGNED NOT NULL,
+ user_id BIGINT UNSIGNED NOT NULL,
+ client_request_id VARCHAR(64) NOT NULL,
+ recipe_fingerprint CHAR(64) NOT NULL,
+ next_step_index SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+ status ENUM('active','completed') NOT NULL DEFAULT 'active',
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ UNIQUE KEY uq_chat_batch_request (user_id,client_request_id),
+ INDEX idx_chat_batch_active (user_id,status,updated_at),
+ CONSTRAINT fk_chat_session_batch FOREIGN KEY (batch_id) REFERENCES dough_batches(id) ON DELETE RESTRICT,
+ CONSTRAINT fk_chat_session_recipe FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE RESTRICT,
+ CONSTRAINT fk_chat_session_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS chat_batch_step_actions (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ session_id BIGINT UNSIGNED NOT NULL,
+ step_key VARCHAR(50) NOT NULL,
+ user_id BIGINT UNSIGNED NOT NULL,
+ client_event_id VARCHAR(64) NOT NULL,
+ note VARCHAR(1000) NOT NULL DEFAULT '',
+ source ENUM('manual','voice_command') NOT NULL DEFAULT 'manual',
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ UNIQUE KEY uq_chat_step_request (user_id,client_event_id),
+ UNIQUE KEY uq_chat_step_once (session_id,step_key),
+ CONSTRAINT fk_chat_step_session FOREIGN KEY (session_id) REFERENCES chat_batch_sessions(id) ON DELETE RESTRICT,
+ CONSTRAINT fk_chat_step_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT
+) ENGINE=InnoDB;

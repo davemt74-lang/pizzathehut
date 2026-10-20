@@ -115,5 +115,5 @@ async function run(cmd){
  }
  return false;
 }
-window.pizzaChatCommands=async value=>{const source=window.pizzaChatNextInputSource||'manual';window.pizzaChatNextInputSource=null;window.pizzaChatCommandSource=source;const cmd=parseCommand(value);if(!cmd)return false;window.dispatchEvent(new Event('pizza-chat-local-command'));try{await run(cmd);}catch(e){card('Command unavailable',e.message||'Try again.');}return true;};
+window.pizzaChatCommands=async value=>{const source=window.pizzaChatNextInputSource||'manual';window.pizzaChatNextInputSource=null;window.pizzaChatCommandSource=source;if(await window.pizzaChatBatchCommand?.(value,source)){window.dispatchEvent(new Event('pizza-chat-local-command'));return true;}const cmd=parseCommand(value);if(!cmd)return false;window.dispatchEvent(new Event('pizza-chat-local-command'));try{await run(cmd);}catch(e){card('Command unavailable',e.message||'Try again.');}return true;};
 })();

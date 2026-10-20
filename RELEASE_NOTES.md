@@ -1,3 +1,13 @@
+# Pizza Lab v1.5.16C — Conversational Dough Production
+
+- Guided dough creation available on request, not a mandatory primary experience.
+- Recipe selection resolves one marked current or requires explicit chef choice; ingredient quantities come from saved recipe.
+- Confirmed, deduplicated creation freezes the recipe and its process timeline, with maker/recorder attribution.
+- Conversational step instructions, confirmed physical step completion, optional note and resumable persisted session state.
+- Session access restricted to owner; unique request IDs, server-side locks, stale-preview checks and CSRF-protected writes.
+- New additive `chat_batch_sessions` and `chat_batch_step_actions` tables, plus PHP/Node/MySQL/HTTP tests and certified ZIP.
+- Explicitly no claim of automatic physical actions, camera proof, closed-browser prompts or live iPhone acceptance. Gelato is separate.
+
 # Pizza Lab v1.5.16B — Proactive Foreground Kitchen Checks
 
 - Scoped to Pizza Lab only; Gelato remains independent.
