@@ -15,9 +15,14 @@ function open(){
  panel.hidden=false;trigger.setAttribute('aria-expanded','true');
  const url=new URL('pizza_tracker.php',window.location.href);
  url.searchParams.set('embedded','1');
+ const scope=document.getElementById('scope'),target=document.getElementById('target');
+ if(scope?.value==='batch'&&target?.value){
+   const matches=(window.PIZZA_CHAT_BATCH_EVIDENCE||[]).filter(e=>String(e.batch_id)===String(target.value));
+   if(matches.length===1)url.searchParams.set('evidence_id',String(matches[0].id));
+ }
  frame.src=url.toString();
  closeButton.focus();
- setStatus('Camera opened in chat. Start tracking, then select a pizza test.');
+ setStatus(url.searchParams.has('evidence_id')?'Camera opened with this batch’s only pizza test. Verify before capture.':'Camera opened. Select the correct pizza test, then start tracking.');
 }
 function close(){
  if(panel.hidden)return;
