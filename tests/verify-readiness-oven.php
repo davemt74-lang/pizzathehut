@@ -13,6 +13,6 @@ ok($r['status']==='Near scheduled target'&&$r['evidence_confidence']==='limited'
 $unknown=lab_readiness_assess(['balled_at'=>null,'process_steps_snapshot'=>null],[]);ok($unknown['status']==='Insufficient observations'&&$unknown['evidence_confidence']==='very limited','missing evidence never assumed');
 $schema=file_get_contents(__DIR__.'/../schema.sql');foreach(['oven_layouts','oven_zone_readings','dough_readiness_checks','pizza_tracker_boxes'] as $table)ok(str_contains($schema,'CREATE TABLE IF NOT EXISTS '.$table.' ('),'migration '.$table);
 $api=file_get_contents(__DIR__.'/../api.php');ok(str_contains($api,"if (\$action==='saveTrackerBox')"),'bounded photo metadata endpoint');
-$js=file_get_contents(__DIR__.'/../assets/pizza_tracker.js');ok(str_contains($js,"takePhoto()")&&str_contains($js,"voiceEnabled")&&str_contains($js,"startsWith(wake+' ')")&&!str_contains($js,"'pizza rotate'"),'voice photo command belongs to camera tracker');
+$js=file_get_contents(__DIR__.'/../assets/pizza_tracker.js');ok(str_contains($js,"takePhoto('voice_command')")&&str_contains($js,"voiceEnabled")&&str_contains($js,"startsWith(wake+' ')")&&!str_contains($js,"'pizza rotate'"),'voice photo command belongs to camera tracker');
 $page=file_get_contents(__DIR__.'/../pizza_tracker.php');ok(str_contains($page,'Take photo + analyze')&&str_contains($page,'boxWidth'),'tracker photo UI and box correction');
 echo "PASS: dough readiness, oven geometry, photo attribution and voice-command source contracts\n";
