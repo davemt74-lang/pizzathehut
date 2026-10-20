@@ -1,3 +1,7 @@
+# Pizza Lab v1.5.13 — Kitchen Reliability & Acceptance
+
+**Section A (upgrade safety):** A Super Admin must explicitly confirm completing an external backup of the database, config.php and private uploads before the existing upgrade tool can alter schema. CI verifies the unchecked path is refused and a confirmed upgrade completes on disposable MySQL. This does **not** create the backup or certify a production restoration. Keep secure off-server backup copies before deployment.
+
 # Pizza Lab v1.5.12 — Kitchen Conversation Reliability
 
 **Latest release:** v1.5.12 on `main` — Sections A–D merged (PRs #14–#17). The primary interface is a one-page chat with hamburger navigation, account controls, microphone and camera in the sticky footer.

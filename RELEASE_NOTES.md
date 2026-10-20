@@ -1,4 +1,13 @@
-# Pizza Lab v1.5.12 — Conversation, Kitchen Voice, Camera, and Certification
+# Pizza Lab v1.5.13 — Kitchen Reliability & Acceptance
+
+## A. Upgrade safety and repeatable CI
+- Upgrade.php now requires a deliberate Super Admin backup acknowledgement before any schema changes; retains authenticated CSRF checks.
+- Disposable MySQL and authenticated HTTP CI verify rejection without confirmation and idempotent schema upgrade after acknowledgement.
+- Production backups, restoration and physical kitchen testing are required separately.
+
+---
+
+## Prior release — Pizza Lab v1.5.12 — Conversation, Kitchen Voice, Camera, and Certification
 
 ## Section A — Natural persistent conversation (PR #14)
 
