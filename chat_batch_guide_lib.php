@@ -51,7 +51,7 @@ function lab_chat_batch_record(int $sessionId,int $userId):array{
     $steps=json_decode($s['process_steps_snapshot']??'null',true);
     if(!is_array($steps))$steps=[];
     $index=(int)$s['next_step_index'];
-    $history=query('SELECT step_key,notes,source,created_at FROM chat_batch_step_actions WHERE session_id=? ORDER BY id',[$sessionId])->fetchAll();
+    $history=query('SELECT step_key,note,source,created_at FROM chat_batch_step_actions WHERE session_id=? ORDER BY id',[$sessionId])->fetchAll();
     $recipe=json_decode($s['recipe_snapshot']??'null',true);
     $weights=[];
     foreach(['flour_g','water_g','salt_g','oil_g','honey_g','yeast_g'] as $k)$weights[$k]=($recipe[$k]??null)===null?null:(float)$recipe[$k];
