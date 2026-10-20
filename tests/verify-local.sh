@@ -51,3 +51,5 @@ php -r '$n=file_get_contents("RELEASE_NOTES.md");$r=file_get_contents("README.md
 php tests/verify-upgrade-preflight.php
 
 node tests/verify-voice-recovery.js
+
+php tests/verify-camera-recovery.php
