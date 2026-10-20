@@ -12,6 +12,6 @@ ensure(lab_timer_event('timer_started')&&lab_timer_event('timer_reset')&&!lab_ti
 foreach(['FOR UPDATE','beginTransaction','rollBack','client_event_id','revision=revision+1','UTC_TIMESTAMP(6)','TIMESTAMPDIFF(MICROSECOND'] as $token)ensure(str_contains($lib,$token),'Missing timer guard '.$token);
 ensure(str_contains($api,"action==='kitchenTimers'")&&str_contains($api,'lab_timer_activity_save'),'Timer API integration missing');
 ensure(str_contains($schema,'CREATE TABLE IF NOT EXISTS kitchen_activity_timers'),'Fresh-install timer schema missing');
-ensure(str_contains($upgrade,'kitchen_activity_timers ready'),'Timer upgrade missing');
+ensure(str_contains($upgrade,'persistent kitchen timers ready'),'Timer upgrade missing');
 ensure(str_contains($ui,'pizza-timers-updated')&&str_contains($ui,'visibilitychange'),'Chat timer recovery missing');
 echo "PASS: v1.5.16A kitchen timer source contracts\n";
