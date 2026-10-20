@@ -27,3 +27,7 @@ node --check assets/pizza_tracker.js
 php tests/verify-heatmap.php
 node --check assets/heatmap.js
 php tests/verify-cook-activity.php
+
+php tests/verify-cooking-patterns.php
+node --check assets/agent_chat_voice.js
+php tests/verify-chat-first.php
