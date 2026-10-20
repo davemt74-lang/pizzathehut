@@ -1,3 +1,14 @@
+# Pizza Lab v1.5.16E — Integrated Agent Awareness and Certification
+
+- Claude's **read-only** coaching analysis now sees a compact current kitchen snapshot: up to eight current user's dough guide sessions and twelve shared active pizza timers.
+- Next saved dough step, recipe context, elapsed timer state, planned target and emitted advisory reminders are grounded in the current database, with an explicit UTC timestamp.
+- Chef-confirmed physical rotation and pull-back are distinguished from agent reminders, and prior cook runs do not get misattributed to a freshly started timer.
+- Authenticated read-only `chatKitchenAwareness` endpoint available for diagnostics and certification.
+- Adds source/API safety contracts and real MySQL/HTTP checks for account isolation, same-pizza timer restart and audit provenance.
+- All existing standalone Agent Chat actions, timers, voice workflows and A–D features retained; no new migrations.
+- **Only automated software acceptance is CI-certified**. Real iPhone, physical oven, locked-phone delivery and speech playback remain manual acceptance requirements.
+- Gelato is not connected or modified.
+
 # Pizza Lab v1.5.16D — Voice & Kitchen Continuity
 
 - Fix missing Agent Chat batch-script inclusion; load the batch module before command routing.
