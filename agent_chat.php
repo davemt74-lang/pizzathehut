@@ -5,7 +5,7 @@ auth();
 $recipes=query('SELECT id,name FROM recipes ORDER BY name')->fetchAll();
 $batches=query('SELECT b.id,b.batch_code,r.name AS recipe_name FROM dough_batches b JOIN recipes r ON r.id=b.recipe_id ORDER BY b.id DESC LIMIT 250')->fetchAll();
 $batchEvidence=query('SELECT batch_id,id FROM evidence WHERE batch_id IS NOT NULL ORDER BY id DESC LIMIT 1000')->fetchAll();
-$pizzaIds=array_map('intval',query('SELECT id FROM evidence ORDER BY id DESC LIMIT 1000')->fetchAll(PDO::FETCH_COLUMN));
+$pizzaIds=array_map('intval',query('SELECT id FROM evidence WHERE created_by_user_id=? ORDER BY id DESC LIMIT 1000',[auth()])->fetchAll(PDO::FETCH_COLUMN));
 $scope=in_array(($_GET['scope']??''),['all','recipe','batch'],true)?$_GET['scope']:'all';
 $target=(string)($_GET['id']??'');
 $user=auth_user();
@@ -71,6 +71,8 @@ body.chat-nav-open{overflow:hidden}
 .coach-command-list button{font-weight:500;font-size:.85rem;max-width:100%;overflow-wrap:anywhere}
 .coach-confirm{border:1px solid #a77c47;background:#31281d;border-radius:12px;padding:12px;margin-top:12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .coach-confirm button{min-height:42px}
+.coach-quick{display:flex;flex-wrap:wrap;gap:7px;margin:3px 0 11px}
+.coach-quick button{padding:8px 12px;min-height:37px;font-size:.82rem;border-radius:12px}
 
 /* Compact account button; only the chat, nav and selected dialog are visible. */
 .coach-top{gap:10px}.coach-top h1{white-space:nowrap;font-size:1.02rem}
@@ -140,6 +142,7 @@ body.chat-nav-open{overflow:hidden}
  <div class="chat-account"><button type="button" id="chatAccountToggle" class="chat-account-toggle" aria-label="Account menu" aria-haspopup="menu" aria-expanded="false" aria-controls="chatAccountMenu"><span id="chatAccountInitial" class="chat-account-initial"><?=htmlspecialchars($initial,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')?></span><span id="chatAccountName" class="chat-account-name"><?=htmlspecialchars((string)$user['display_name'],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')?></span><span aria-hidden="true">⌄</span></button>
  <div id="chatAccountMenu" class="chat-account-menu" role="menu" aria-label="Account" hidden><button type="button" role="menuitem" data-account-panel="profile">My profile</button><button type="button" role="menuitem" data-account-panel="voice">Voice settings</button><?php if(is_super_admin()):?><button type="button" role="menuitem" data-account-panel="ai">Claude API &amp; model</button><?php endif;?><button type="button" role="menuitem" data-account-panel="password">Change password</button><form method="post" action="auth.php?logout=1"><input type="hidden" name="csrf" value="<?=htmlspecialchars(csrf(),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')?>"><button type="submit" role="menuitem">Log out</button></form></div></div></header>
 <p class="coach-intro">Ask about your dough, cooking technique, or any recipe. Answers use saved evidence when available.</p>
+<div class="coach-quick" aria-label="Quick pizza actions"><button type="button" data-chat-command="new pizza">+ New pizza</button><button type="button" data-chat-command="start timer">▶ Start timer</button><button type="button" data-chat-command="current pizza">Current pizza</button><button type="button" data-chat-command="time left">Time left</button></div>
 <section id="chatWorkdayContext" class="chat-workday-context" aria-live="polite" aria-label="Today's recorded workday" hidden></section>
 <details class="coach-context"><summary>Evidence scope · all recipes by default</summary><div class="coach-row"><label>Analyze<select id="scope"><option value="all" <?=$scope==='all'?'selected':''?>>All recipes & batches</option><option value="recipe" <?=$scope==='recipe'?'selected':''?>>One recipe or variation</option><option value="batch" <?=$scope==='batch'?'selected':''?>>One batch</option></select></label><label id="targetRow">Recipe / batch<select id="target"></select></label></div>
 <p class="coach-muted">Recent batch snapshots, dough temperatures, pizza tests, stone readings, and usage. Tap the footer camera to collect private pizza photos without leaving the chat. Missing measurements remain unknown.</p></details>
@@ -168,6 +171,8 @@ window.PIZZA_CHAT_RECIPE_LIST=RECIPES;
 const BATCHES=<?=json_encode($batches,JSON_INVALID_UTF8_SUBSTITUTE|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_QUOT|JSON_HEX_APOS)?>;
 window.PIZZA_CHAT_BATCH_EVIDENCE=<?=json_encode($batchEvidence,JSON_INVALID_UTF8_SUBSTITUTE|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_QUOT|JSON_HEX_APOS)?>;
 window.PIZZA_CHAT_PIZZA_IDS=<?=json_encode($pizzaIds,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_QUOT|JSON_HEX_APOS)?>;
+window.PIZZA_CHAT_USER_ID=<?=json_encode((int)$user['id'])?>;
+window.PIZZA_CHAT_ACTIVE_PIZZA_ID=null;
 const FIRST=<?=json_encode($target,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_QUOT|JSON_HEX_APOS)?>;
 window.PIZZA_CHAT_ACCOUNT=<?=json_encode($account,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_QUOT|JSON_HEX_APOS)?>;
 window.PIZZA_CHAT_CSRF=CSRF;
@@ -210,4 +215,4 @@ el('coachForm').addEventListener('submit',async ev=>{ev.preventDefault();
  finally{button.disabled=false;window.dispatchEvent(new Event('pizza-chat-response-complete'));}
 });
 choose(FIRST);loadHistory().catch(e=>el('coachStatus').textContent=e.message);
-</script><script defer src="assets/agent_chat_timers.js?v=1.5.16F"></script><script defer src="assets/agent_chat_workday.js?v=1.5.16F"></script><script defer src="assets/agent_chat_nav.js?v=1.5.16F"></script><script defer src="assets/agent_chat_batch.js?v=1.5.16F"></script><script defer src="assets/agent_chat_commands.js?v=1.5.16F"></script><script defer src="assets/agent_chat_camera.js?v=1.5.16F"></script><script defer src="assets/agent_chat_voice.js?v=1.5.16F"></script><script defer src="assets/agent_chat_account.js?v=1.5.16F"></script></body></html>
+</script><script defer src="assets/agent_chat_timers.js?v=1.5.16G"></script><script defer src="assets/agent_chat_workday.js?v=1.5.16G"></script><script defer src="assets/agent_chat_nav.js?v=1.5.16G"></script><script defer src="assets/agent_chat_batch.js?v=1.5.16G"></script><script defer src="assets/agent_chat_commands.js?v=1.5.16G"></script><script defer src="assets/agent_chat_camera.js?v=1.5.16G"></script><script defer src="assets/agent_chat_voice.js?v=1.5.16G"></script><script defer src="assets/agent_chat_account.js?v=1.5.16G"></script></body></html>

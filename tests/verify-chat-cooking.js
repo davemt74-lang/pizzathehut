@@ -3,5 +3,15 @@ const {parseCommand}=require('../assets/agent_chat_commands.js');const assert=re
 const cases=[['start timer for pizza 12',{type:'cook',event_type:'timer_started',evidence_id:12}],['stop pizza timer for pizza #12',{type:'cook',event_type:'timer_stopped',evidence_id:12}],['rotate pizza 12',{type:'cook',event_type:'rotation_confirmed',evidence_id:12}],['we just pulled back pizza 17',{type:'cook',event_type:'pull_back_confirmed',evidence_id:17}],['finish pizza 12',{type:'cook',event_type:'pizza_finished',evidence_id:12}]];
 for(const [s,v] of cases)assert.deepEqual(parseCommand(s),v,s);
 assert.deepEqual(parseCommand('start pizza timer'),{type:'cook_pick',event_type:'timer_started',target_seconds:480},'short command must offer an explicit pizza choice');
+assert.deepEqual(parseCommand('start time'),{type:'cook_pick',event_type:'timer_started',target_seconds:480},'spoken start time alias');
+assert.deepEqual(parseCommand('new pizza'),{type:'new_pizza'},'new pizza starts chat-first workflow');
+assert.deepEqual(parseCommand('create a new pizza'),{type:'new_pizza'},'natural pizza creation phrase');
+assert.deepEqual(parseCommand('current pizza'),{type:'pizza_status'},'current chef pizza status');
+assert.deepEqual(parseCommand('time left'),{type:'pizza_time'},'spoken elapsed-time request');
+assert.deepEqual(parseCommand('I rotated it'),{type:'cook_observed',event_type:'rotation_confirmed'},'affirmative rotation report');
+assert.deepEqual(parseCommand('I pulled the pizza back'),{type:'cook_observed',event_type:'pull_back_confirmed'},'affirmative pull-back report');
+assert.deepEqual(parseCommand('I took it out'),{type:'cook_observed',event_type:'pizza_finished'},'affirmative pizza finish report');
+assert.deepEqual(parseCommand('select pizza 42'),{type:'pizza_select',evidence_id:42},'explicit current pizza change');
+for(const s of ['rotate it','pull it back','maybe it is finished'])assert.equal(parseCommand(s),null,'suggestion is not proof: '+s);
 for(const s of ['rotate the pizza','timer is on','pizza timer start','rotate the dough'])assert.equal(parseCommand(s),null,s);
 console.log('PASS: exact pizza cooking commands, contextual timer selection and ambiguous physical action fallbacks');

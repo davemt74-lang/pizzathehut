@@ -59,9 +59,10 @@ function lab_reminder_generate(int $evidenceId,int $userId): void {
  * the receipt; duplicate polling does not produce repeated chat interruptions.
  * Claiming is best-effort (a lost HTTP response can lose a display), not push delivery.
  */
-function lab_reminder_poll(int $userId): array {
-    $ids=query("SELECT evidence_id FROM kitchen_activity_timers WHERE status='running' AND target_seconds IS NOT NULL
-        ORDER BY updated_at DESC,evidence_id DESC LIMIT 50")->fetchAll(PDO::FETCH_COLUMN);
+function lab_reminder_poll(int $userId,bool $mineOnly=false): array {
+    $ids=query("SELECT t.evidence_id FROM kitchen_activity_timers t JOIN evidence e ON e.id=t.evidence_id
+        WHERE t.status='running' AND t.target_seconds IS NOT NULL".($mineOnly?' AND e.created_by_user_id=?':'')."
+        ORDER BY t.updated_at DESC,t.evidence_id DESC LIMIT 50",$mineOnly?[$userId]:[])->fetchAll(PDO::FETCH_COLUMN);
     foreach($ids as $id)lab_reminder_generate((int)$id,$userId);
     $db=db();$db->beginTransaction();
     try{
@@ -71,9 +72,10 @@ function lab_reminder_poll(int $userId): array {
             WHERE r.created_at>=UTC_TIMESTAMP(6)-INTERVAL 15 MINUTE
               AND r.start_activity_id=(SELECT MAX(a.id) FROM oven_cook_activity a
                   WHERE a.evidence_id=r.evidence_id AND a.event_type='timer_started')
+              ".($mineOnly?'AND e.created_by_user_id=?':'')."
               AND NOT EXISTS (SELECT 1 FROM kitchen_reminder_receipts x
                   WHERE x.reminder_id=r.id AND x.user_id=?)
-            ORDER BY r.id ASC LIMIT 20",[$userId])->fetchAll(PDO::FETCH_ASSOC);
+            ORDER BY r.id ASC LIMIT 20",$mineOnly?[$userId,$userId]:[$userId])->fetchAll(PDO::FETCH_ASSOC);
         $claimed=[];
         foreach($available as $row){
             query("INSERT IGNORE INTO kitchen_reminder_receipts (reminder_id,user_id,claimed_at)

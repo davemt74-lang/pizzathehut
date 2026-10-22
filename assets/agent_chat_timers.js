@@ -3,13 +3,15 @@
  const chat=document.getElementById('coachHistory');
  if(!chat)return;
  const panel=document.createElement('section');
- panel.className='chat-workday-context';panel.setAttribute('aria-label','Active kitchen timers');
- const title=document.createElement('strong');title.textContent='Active kitchen timers';
+ panel.className='chat-workday-context';panel.setAttribute('aria-label','My active kitchen timers');
+ const title=document.createElement('strong');title.textContent='My active kitchen timers';
  const speechButton=document.createElement('button');speechButton.type='button';
- let speakAlerts=false;
+ const preferenceKey='pizza_chat_proactive_alerts_'+String(window.PIZZA_CHAT_USER_ID||'chef');
+ let speakAlerts=true;
+ try{speakAlerts=window.localStorage?.getItem(preferenceKey)!=='off';}catch{}
  function speechLabel(){speechButton.textContent='Speak kitchen alerts: '+(speakAlerts?'on':'off');speechButton.setAttribute('aria-pressed',speakAlerts?'true':'false');}
  speechLabel();
- speechButton.addEventListener('click',()=>{speakAlerts=!speakAlerts;speechLabel();});
+ speechButton.addEventListener('click',()=>{speakAlerts=!speakAlerts;speechLabel();try{window.localStorage?.setItem(preferenceKey,speakAlerts?'on':'off');}catch{}});
  const timerContent=document.createElement('div');
  panel.append(title,speechButton,timerContent);
  chat.parentNode.insertBefore(panel,chat);
@@ -32,17 +34,10 @@
   }
  }
  function speak(message){
-  if(!speakAlerts||document.visibilityState==='hidden'||!window.speechSynthesis||typeof window.SpeechSynthesisUtterance!=='function')return;
-  const mic=document.getElementById('chatMic');
-  if(mic && (mic.dataset.voiceState==='listening'||mic.dataset.voiceState==='speaking'))return;
-  try{
-   const utterance=new SpeechSynthesisUtterance(message);
-   const profile=window.PIZZA_CHAT_VOICE||{};
-   utterance.rate=Math.min(1.5,Math.max(.6,Number(profile.voice_rate)||.95));
-   const voice=(window.speechSynthesis.getVoices?.()||[]).find(v=>v.voiceURI===profile.voice_uri);
-   if(voice)utterance.voice=voice;
-   window.speechSynthesis.speak(utterance);
-  }catch{/* Browser voice playback is optional; visible alert always remains. */}
+  if(!speakAlerts||document.visibilityState==='hidden')return;
+  // One shared speaker pauses persistent recognition, preventing the agent
+  // from transcribing its own reminders as new commands.
+  window.dispatchEvent(new CustomEvent('pizza-chat-speak-request',{detail:{text:message}}));
  }
  function showReminder(item){
   if(seen.has(item.id))return;
@@ -63,7 +58,7 @@
   try{
    const res=await fetch('api.php',{method:'POST',credentials:'same-origin',cache:'no-store',
       headers:{'Content-Type':'application/json','X-CSRF-Token':window.PIZZA_CHAT_CSRF},
-      body:JSON.stringify({action:'kitchenReminderPoll'})});
+      body:JSON.stringify({action:'kitchenReminderPoll',mine:true})});
    const data=await res.json();if(!res.ok||!data.ok)throw Error(data.error||'Kitchen reminders unavailable');
    for(const item of data.reminders||[])showReminder(item);
   }catch(err){const status=document.getElementById('coachStatus');if(status)status.textContent='Kitchen reminder connection unavailable: '+err.message;}
@@ -73,7 +68,7 @@
   if(loading||document.visibilityState==='hidden')return;
   loading=true;
   try{
-   const res=await fetch('api.php?action=kitchenTimers',{credentials:'same-origin',cache:'no-store'});
+   const res=await fetch('api.php?action=kitchenTimers&mine=1',{credentials:'same-origin',cache:'no-store'});
    const data=await res.json();if(!res.ok||!data.ok)throw Error(data.error||'Timers unavailable');
    timers=data.timers||[];lastSync=Date.now();render();
    await pollReminders();

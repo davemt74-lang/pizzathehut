@@ -11,6 +11,6 @@ $b=lab_chat_workday_view([...$days,['id'=>4,'work_date'=>'2026-10-20','title'=>'
 check($b['state']==='multiple'&&$b['batches']===[],'ambiguous day cannot silently assign a batch');
 $api=file_get_contents(__DIR__.'/../api.php');$ui=file_get_contents(__DIR__.'/../agent_chat.php');$script=file_get_contents(__DIR__.'/../assets/agent_chat_workday.js');
 check(str_contains($api,"$"."action==='chatWorkdayContext'"),'GET action');
-check(str_contains($ui,'id="chatWorkdayContext"')&&str_contains($script,'form.requestSubmit()'),'chat confirmation path');
-check(!str_contains($script,"action:'chatCreateWorkday'"),'no automatic creation');
-echo "PASS: read-only current workday, ambiguous selection and missing evidence\n";
+check(str_contains($ui,'id="chatWorkdayContext"')&&str_contains($script,'chatEnsureWorkday'),'automatic shared daily activation from Chat');
+check(!str_contains($script,"action:'chatCreateWorkday'"),'no duplicate legacy workday submission');
+echo "PASS: automatically activated shared current workday, historical ambiguity and missing evidence\n";

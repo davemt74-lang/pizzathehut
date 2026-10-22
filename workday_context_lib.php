@@ -19,8 +19,10 @@ function lab_chat_workday_view(array $days, array $events, array $pizzas): array
       'batches'=>array_values($batches),'pizzas'=>array_map(static fn(array $p)=>['id'=>(int)$p['id'],'label'=>(string)$p['label']],$pizzas),
       'rated_crispness'=>count($samples),'avg_crispness'=>$samples?round(array_sum(array_map('floatval',$samples))/count($samples),2):null];
 }
-function lab_chat_workday_context(string $date, ?int $selectedId=null): array {
+function lab_chat_workday_context(string $date, ?int $selectedId=null, ?int $userId=null): array {
     if(!lab_valid_work_date($date))fail('Choose a valid workday date.');
+    // A workday represents the shared kitchen day, never a chef-owned session.
+    // Only the linked pizza observations below are filtered for Agent Chat.
     $days=query('SELECT id,work_date,title FROM workdays WHERE work_date=? ORDER BY id DESC LIMIT 20',[$date])->fetchAll();
     if($selectedId!==null){
         $days=array_values(array_filter($days,static fn(array $d)=>(int)$d['id']===$selectedId));
@@ -29,7 +31,9 @@ function lab_chat_workday_context(string $date, ?int $selectedId=null): array {
     if(count($days)!==1){$view=lab_chat_workday_view($days,[],[]);$view['coaching']=lab_chat_workday_tip($view);return $view;}
     $id=(int)$days[0]['id'];
     $events=query('SELECT e.batch_id,b.batch_code,r.name AS recipe_name,e.activity FROM workday_batch_events e JOIN dough_batches b ON b.id=e.batch_id JOIN recipes r ON r.id=b.recipe_id WHERE e.workday_id=? ORDER BY e.id DESC LIMIT 120',[$id])->fetchAll();
-    $pizzas=query('SELECT p.id,p.label,p.crispness_score FROM workday_pizzas w JOIN evidence p ON p.id=w.evidence_id WHERE w.workday_id=? ORDER BY p.id DESC LIMIT 100',[$id])->fetchAll();
+    $pizzas=$userId===null
+        ?query('SELECT p.id,p.label,p.crispness_score FROM workday_pizzas w JOIN evidence p ON p.id=w.evidence_id WHERE w.workday_id=? ORDER BY p.id DESC LIMIT 100',[$id])->fetchAll()
+        :query('SELECT p.id,p.label,p.crispness_score FROM workday_pizzas w JOIN evidence p ON p.id=w.evidence_id WHERE w.workday_id=? AND w.recorded_by_user_id=? ORDER BY p.id DESC LIMIT 100',[$id,$userId])->fetchAll();
     $view=lab_chat_workday_view($days,$events,$pizzas);$view['coaching']=lab_chat_workday_tip($view);return $view;
 }
 

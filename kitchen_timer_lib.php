@@ -23,13 +23,14 @@ function lab_timer_snapshot(int $evidenceId): ?array {
       'updated_at'=>$row['updated_at'].' UTC'
     ];
 }
-function lab_timer_list(): array {
-    // Authenticated users share kitchen activity, just like existing pizza evidence.
+function lab_timer_list(?int $userId=null): array {
+    // Legacy views remain shared. Chat requests only this signed-in chef's pizzas.
     $rows=query("SELECT e.id AS evidence_id,e.label,t.status,t.accumulated_ms,t.target_seconds,t.revision,t.updated_by_user_id,t.updated_at,
       CASE WHEN t.status='running' THEN t.accumulated_ms + GREATEST(0,TIMESTAMPDIFF(MICROSECOND,t.started_at,UTC_TIMESTAMP(6)) DIV 1000)
       ELSE t.accumulated_ms END AS elapsed_ms
       FROM kitchen_activity_timers t JOIN evidence e ON e.id=t.evidence_id
-      WHERE t.status IN ('running','paused') ORDER BY t.updated_at DESC,t.evidence_id DESC LIMIT 50")->fetchAll(PDO::FETCH_ASSOC);
+      WHERE t.status IN ('running','paused')".($userId===null?'':' AND e.created_by_user_id=?')."
+      ORDER BY t.updated_at DESC,t.evidence_id DESC LIMIT 50",$userId===null?[]:[$userId])->fetchAll(PDO::FETCH_ASSOC);
     return array_map(static fn(array $r)=>[
       'evidence_id'=>(int)$r['evidence_id'],'label'=>$r['label'],'status'=>$r['status'],
       'elapsed_ms'=>(int)$r['elapsed_ms'],
