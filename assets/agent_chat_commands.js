@@ -7,6 +7,21 @@ function parseCommand(raw){
  if(/^(open|show) (the )?(menu|navigation|sidebar)$/.test(lower))return{type:'menu'};
  if(/^(open|start|show) (the )?(pizza )?(camera|tracker|camera tracker)$/.test(lower))return{type:'camera_open'};
  if(/^(close|stop|hide) (the )?(pizza )?(camera|tracker|camera tracker)$/.test(lower))return{type:'camera_close'};
+ const toolPages={
+  'live oven':['index.php?workspace=1#live','Live oven & timers'],
+  'live scanner':['index.php?workspace=1#live','Live oven & timers'],
+  'oven layout':['oven_layout.php','Oven builder'],
+  'oven builder':['oven_layout.php','Oven builder'],
+  'heat map':['heatmap.php','Cooking heat map'],
+  'settings':['index.php?workspace=1#settings','Workspace settings'],
+  'recipes':['index.php?workspace=1#recipes','Recipes & variations'],
+  'recipe editor':['index.php?workspace=1#recipes','Recipes & variations'],
+  'pizza evidence':['index.php?workspace=1#evidence','Pizza evidence'],
+  'dough batches':['index.php?workspace=1#batches','Dough batches']
+ };
+ let tool=lower.match(/^(?:open|show|go to) (?:the )?(.+)$/);
+ if(tool&&toolPages[tool[1]])return{type:'tool',href:toolPages[tool[1]][0],title:toolPages[tool[1]][1]};
+ if(/^(?:open|show|configure) (?:the |my )?(?:claude|anthropic)(?: api)?(?: key| settings| model)?$/.test(lower))return{type:'ai_settings'};
  let m=input.match(/^(?:pizza[, ]+)?(?:the )?(?:dough |batch )?(?:temperature|temp)(?: for)? (?:batch )?([A-Za-z0-9-]{3,18}) (?:is |at )?(-?\d+(?:\.\d{1,2})?) (?:degrees?|°?f)?$/i);
  if(m)return{type:'kitchen',action_type:'dough_temp',term:m[1],temperature_f:Number(m[2])};
  m=input.match(/^(?:pizza[, ]+)?(?:batch )([A-Za-z0-9-]{3,18}) (?:is |at )(-?\d+(?:\.\d{1,2})?) (?:degrees?|°?f)?$/i);
@@ -21,6 +36,12 @@ function parseCommand(raw){
  if(m){const seconds=Number(m[2])*(/^min/i.test(m[3])?60:1);return{type:'cook',event_type:'timer_started',evidence_id:Number(m[1]),target_seconds:seconds};}
  m=input.match(/^(?:pizza[, ]+)?(start|stop) (?:the )?(?:pizza )?timer (?:for )?pizza #?(\d{1,9})$/i);
  if(m)return{type:'cook',event_type:m[1].toLowerCase()==='start'?'timer_started':'timer_stopped',evidence_id:Number(m[2])};
+ m=lower.match(/^(?:pizza[, ]+)?(?:start|begin) (?:the )?(?:pizza )?timer(?: (?:for|at) (\d{1,4}) (seconds?|secs?|minutes?|mins?))?$/);
+ if(m)return{type:'cook_pick',event_type:'timer_started',target_seconds:m[1]?Number(m[1])*(/^min/.test(m[2])?60:1):480};
+ if(/^(?:confirm|start) (?:the )?timer now$|^confirm timer$|^confirm cooking action$/.test(lower))return{type:'cook_confirm'};
+ if(/^(?:cancel|discard) (?:the )?timer(?: start| confirmation)?$/.test(lower))return{type:'cook_cancel'};
+ m=lower.match(/^pizza #?(\d{1,9})$/);
+ if(m)return{type:'cook_choose',evidence_id:Number(m[1])};
  m=input.match(/^(?:pizza[, ]+)?(?:i |we )?(?:just )?(rotated|rotate|pulled back|pull back|finished|finish) pizza #?(\d{1,9})$/i);
  if(m)return{type:'cook',event_type:/rotat/i.test(m[1])?'rotation_confirmed':/pull/i.test(m[1])?'pull_back_confirmed':'pizza_finished',evidence_id:Number(m[2])};
  if(/^(help|show commands|what can you do)$/.test(lower))return{type:'help'};
@@ -39,10 +60,11 @@ if(typeof module!=='undefined'&&module.exports)module.exports={parseCommand};
 if(typeof document==='undefined')return;
 const q=id=>document.getElementById(id),history=q('coachHistory'),status=q('coachStatus');
 if(!history||!status)return;
-let pending=null;
+let pending=null,pendingCook=null,pendingPicker=null;
 function element(tag,text){const node=document.createElement(tag);if(text!==undefined)node.textContent=String(text);return node;}
 function card(title,description){const c=element('article');c.className='coach-command-card';c.append(element('strong',title));if(description)c.append(element('p',description));history.append(c);c.scrollIntoView({block:'nearest',behavior:'smooth'});return c;}
 function buttonRow(c,items){const bar=element('div');bar.className='coach-command-list';for(const item of items){const b=element('button',item.label);b.type='button';b.addEventListener('click',item.run);bar.append(b);}c.append(bar);}
+function voicePrompt(message){if(window.pizzaChatCommandSource==='voice_command')window.dispatchEvent(new CustomEvent('pizza-chat-speak-request',{detail:{text:message}}));}
 function localDay(offset=0){const d=new Date();d.setDate(d.getDate()+offset);const yy=d.getFullYear(),mm=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return `${yy}-${mm}-${dd}`;}
 function actualDate(value){const v=value==='today'?localDay():value==='tomorrow'?localDay(1):value; if(!/^\d{4}-\d{2}-\d{2}$/.test(v))return null;const d=new Date(`${v}T12:00:00`);if(Number.isNaN(d.getTime())||`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`!==v)return null;return v;}
 function linkTo(label,url){const a=element('a',label);a.href=url;return a;}
@@ -52,6 +74,19 @@ function chooseScope(scope,id){q('scope').value=scope;if(typeof choose==='functi
 async function getWorkdays(){const res=await fetch('api.php?action=chatWorkdays',{credentials:'same-origin'});const json=await res.json();if(!res.ok||!json.ok)throw Error(json.error||'Could not load workdays');return json.workdays||[];}
 async function createWorkday(date,title){const res=await fetch('api.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF},body:JSON.stringify({action:'chatCreateWorkday',work_date:date,title,confirmed:true})});const json=await res.json();if(!res.ok||!json.ok)throw Error(json.error||'Workday was not created');return json;}
 async function run(cmd){
+ if(cmd.type==='cook_choose'){
+  if(!pendingPicker||Date.now()-pendingPicker.createdAt>120000||!pendingPicker.ids.includes(cmd.evidence_id)){
+   card('Pizza selection unavailable','Say “start timer for pizza” followed by its saved number.');pendingPicker=null;return true;
+  }
+  const target=pendingPicker.command;pendingPicker=null;return run({...target,type:'cook',evidence_id:cmd.evidence_id});
+ }
+ if(cmd.type==='cook_confirm'){
+  if(!pendingCook||Date.now()-pendingCook.createdAt>120000){card('No timer awaiting confirmation','Say “start timer” for a selected pizza first.');pendingCook=null;return true;}
+  await pendingCook.approve();return true;
+ }
+ if(cmd.type==='cook_cancel'){
+  if(pendingCook){pendingCook.cancel();pendingCook=null;}else card('No pending timer','No timer was awaiting confirmation.');return true;
+ }
  if(pending){pending.remove();pending=null;}
  if(cmd.type==='kitchen'){
    const matches=cmd.action_type==='fridge_temp'?[]:BATCHES.filter(b=>b.batch_code.toLowerCase()===cmd.term.toLowerCase());
@@ -72,7 +107,17 @@ async function run(cmd){
    cancel.addEventListener('click',()=>{row.remove();c.append(element('p','Cancelled, nothing saved.'));pending=null;});
    row.append(approve,cancel);c.append(row);pending=row;return true;
  }
+ if(cmd.type==='cook_pick'){
+  const ids=window.PIZZA_CHAT_PIZZA_IDS||[];
+  if(!ids.length){card('Choose a pizza first','Create a pizza evidence record before starting its timer.');voicePrompt('Please create a pizza record first, then tell me to start the timer.');return true;}
+  if(ids.length===1)return run({...cmd,type:'cook',evidence_id:ids[0]});
+  pendingPicker={command:cmd,ids:ids.slice(0,12),createdAt:Date.now()};
+  const c=card('Which pizza timer?','Choose the current pizza record. You can also say “start timer for pizza” followed by its number.');
+  buttonRow(c,ids.slice(0,12).map(id=>({label:'Pizza #'+id,run:()=>{pendingPicker=null;return run({...cmd,type:'cook',evidence_id:id});}})));
+  voicePrompt('Which pizza? Say pizza followed by its saved number, such as pizza '+ids[0]+'.');return true;
+ }
  if(cmd.type==='cook'){
+   if(pendingCook){pendingCook.cancel();pendingCook=null;}
    const id=Number(cmd.evidence_id);
    if(!Number.isSafeInteger(id)||id<1||!(window.PIZZA_CHAT_PIZZA_IDS||[]).includes(id)){
      card('Pizza not selected','Use a pizza test number from your recorded evidence. Nothing was logged.');return true;
@@ -81,18 +126,25 @@ async function run(cmd){
    const source=/^timer_(paused|resumed|reset)$/.test(cmd.event_type)?'manual':(window.pizzaChatCommandSource||'manual');const action={action:'cookActivity',evidence_id:id,event_type:cmd.event_type,source,target_seconds:cmd.target_seconds??null,client_event_id:(window.crypto?.randomUUID?.()||('pizza_'+Date.now()+'_'+Math.random().toString(36).slice(2)))};
    const c=card('Confirm cooking action',labels[cmd.event_type]+' · Pizza #'+id+(cmd.target_seconds?' · '+cmd.target_seconds+' seconds':'')+'. An agent reminder is not a completed movement. Nothing saved yet.');
    const row=element('div');row.className='coach-confirm',approve=element('button','Confirm'),cancel=element('button','Cancel');approve.type=cancel.type='button';approve.className='primary';
-   approve.addEventListener('click',async()=>{if(approve.disabled)return;approve.disabled=cancel.disabled=true;try{
+   const intent={createdAt:Date.now(),approve:async()=>{if(approve.disabled)return;approve.disabled=cancel.disabled=true;try{
      const response=await fetch('api.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF},body:JSON.stringify(action)});
      const data=await response.json();if(!response.ok||!data.ok)throw Error(data.error||'Cooking event unavailable');
-     c.append(element('p','Saved cooking action #'+(data.id??data.activity_id??'—')+'.'));window.dispatchEvent(new Event('pizza-timers-updated'));row.remove();pending=null;
-   }catch(e){c.append(element('p',e.message));approve.disabled=cancel.disabled=false;}});
-   cancel.addEventListener('click',()=>{row.remove();c.append(element('p','Cancelled, no cooking event saved.'));pending=null;});
-   row.append(approve,cancel);c.append(row);pending=row;return true;
+     c.append(element('p','Saved cooking action #'+(data.id??data.activity_id??'—')+'.'));window.dispatchEvent(new Event('pizza-timers-updated'));row.remove();pending=null;if(pendingCook===intent)pendingCook=null;
+     if(cmd.event_type==='timer_started')voicePrompt('Timer started for pizza '+id+'.');
+   }catch(e){c.append(element('p',e.message));approve.disabled=cancel.disabled=false;}},cancel:()=>{row.remove();c.append(element('p','Cancelled, no cooking event saved.'));pending=null;if(pendingCook===intent)pendingCook=null;}};
+   approve.addEventListener('click',intent.approve);
+   cancel.addEventListener('click',intent.cancel);
+   if(cmd.event_type.startsWith('timer_')){pendingCook=intent;c.append(element('p','To confirm by voice, say “confirm timer” within two minutes.'));}
+   row.append(approve,cancel);c.append(row);pending=row;
+   if(cmd.event_type==='timer_started')voicePrompt('Ready to start the '+(cmd.target_seconds?Math.round(cmd.target_seconds/60*10)/10+' minute':'')+' timer for pizza '+id+'. Say confirm timer to start.');
+   return true;
  }
  if(cmd.type==='menu'){window.dispatchEvent(new Event('pizza-chat-nav'));return true;}
+ if(cmd.type==='tool'){window.dispatchEvent(new CustomEvent('pizza-chat-tool-open',{detail:{href:cmd.href,title:cmd.title}}));return true;}
+ if(cmd.type==='ai_settings'){window.dispatchEvent(new Event('pizza-chat-ai-settings'));return true;}
  if(cmd.type==='camera_open'){window.dispatchEvent(new Event('pizza-chat-camera-open'));card('Pizza camera','The camera opens in chat. Choose a pizza record and start the tracker before capturing.');return true;}
  if(cmd.type==='camera_close'){window.dispatchEvent(new Event('pizza-chat-camera-close'));card('Pizza camera','Camera panel closed.');return true;}
- if(cmd.type==='help'){const c=card('Quick commands','You can also use the hamburger navigation at any time.');buttonRow(c,[{label:'Show recipes',run:()=>run({type:'recipes'})},{label:'Show batches',run:()=>run({type:'batches'})},{label:'Recent workdays',run:()=>run({type:'workdays'})},{label:'Open camera',run:()=>run({type:'camera_open'})}]);return true;}
+ if(cmd.type==='help'){const c=card('Quick commands','Use the menu for all Pizza Lab tools. Say “start timer” to choose a pizza and confirm its timer.');buttonRow(c,[{label:'Start timer',run:()=>run({type:'cook_pick',event_type:'timer_started',target_seconds:480})},{label:'Show recipes',run:()=>run({type:'recipes'})},{label:'Show batches',run:()=>run({type:'batches'})},{label:'Open oven layout',run:()=>run({type:'tool',href:'oven_layout.php',title:'Oven builder'})},{label:'Open camera',run:()=>run({type:'camera_open'})}]);return true;}
  if(cmd.type==='recipes'||cmd.type==='batches'||cmd.type==='recipe'||cmd.type==='batch'){
    const isBatch=cmd.type.includes('batch'),items=isBatch?BATCHES:RECIPES;
    const label=v=>isBatch?`${v.batch_code} · ${v.recipe_name}`:v.name;
@@ -116,4 +168,7 @@ async function run(cmd){
  return false;
 }
 window.pizzaChatCommands=async value=>{const source=window.pizzaChatNextInputSource||'manual';window.pizzaChatNextInputSource=null;window.pizzaChatCommandSource=source;if(await window.pizzaChatBatchCommand?.(value,source)){window.dispatchEvent(new Event('pizza-chat-local-command'));return true;}const cmd=parseCommand(value);if(!cmd)return false;window.dispatchEvent(new Event('pizza-chat-local-command'));try{await run(cmd);}catch(e){card('Command unavailable',e.message||'Try again.');}return true;};
+function discardTimerConfirmation(){if(pendingCook)pendingCook.cancel();pendingCook=null;pendingPicker=null;}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')discardTimerConfirmation();});
+window.addEventListener('pagehide',discardTimerConfirmation);
 })();

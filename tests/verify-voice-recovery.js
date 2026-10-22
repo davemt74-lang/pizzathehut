@@ -1,6 +1,6 @@
 'use strict';
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
-const listeners={},wlisteners={},buttons={};
+const listeners={},wlisteners={},buttons={},timers=new Map();let nextTimer=1;
 function node(id){return buttons[id]||(buttons[id]={value:'',textContent:'',dataset:{},attrs:{},listeners:{},classList:{toggle(){}},setAttribute(k,v){this.attrs[k]=v;},addEventListener(k,fn){this.listeners[k]=fn;}});}
 let submitted=0;
 node('coachForm').requestSubmit=()=>{submitted++;};
@@ -12,14 +12,16 @@ class Rec{
 Rec.instances=[];
 const doc={visibilityState:'visible',getElementById:node,addEventListener(k,fn){listeners[k]=fn;}};
 const win={SpeechRecognition:Rec,isSecureContext:true,PIZZA_CHAT_WAKE:'pizza',addEventListener(k,fn){wlisteners[k]=fn;},dispatchEvent(e){wlisteners[e.type]?.(e);}};
-const globals={window:win,document:doc,Event:class{constructor(type){this.type=type;}},SpeechSynthesisUtterance:class{constructor(text){this.text=text;}},Number,String,Array};
+const globals={window:win,document:doc,Event:class{constructor(type){this.type=type;}},SpeechSynthesisUtterance:class{constructor(text){this.text=text;}},Number,String,Array,
+ setTimeout(fn){const id=nextTimer++;timers.set(id,fn);return id;},clearTimeout(id){timers.delete(id);}};
+function tick(){const callbacks=[...timers.values()];timers.clear();callbacks.forEach(fn=>fn());}
 vm.runInNewContext(fs.readFileSync('assets/agent_chat_voice.js','utf8'),globals);
 node('chatMic').listeners.click();assert.equal(Rec.instances.length,1);
 const first=Rec.instances[0];const oldEnd=first.onend;
 assert.equal(node('chatMic').attrs['aria-pressed'],'true');
 first.onresult({results:[{isFinal:true,0:{transcript:'How is the dough today?'}}]});
-assert.equal(submitted,1);assert.equal(node('chatMic').attrs['aria-pressed'],'false');
-node('chatMic').listeners.click();
+assert.equal(submitted,1);assert.equal(node('chatMic').attrs['aria-pressed'],'true','listening persists across voice submission');
+wlisteners['pizza-chat-response-complete']();tick();
 const second=Rec.instances[1];oldEnd();assert.equal(node('chatMic').attrs['aria-pressed'],'true','stale onend cancelled newer recognizer');
 doc.visibilityState='hidden';listeners.visibilitychange();assert(second.aborted,'hidden-page microphone stopped');
 assert.equal(node('chatMic').attrs['aria-pressed'],'false');
