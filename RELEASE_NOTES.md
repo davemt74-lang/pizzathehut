@@ -1,3 +1,16 @@
+# Pizza Lab v1.5.16G — Chef-Scoped New Pizza and Proactive Cooking
+
+- Agent Chat opens the day's **single shared kitchen workday automatically**, regardless of which chef signs in. Date rollover is automatic while Chat stays open; repeat and concurrent requests reuse one canonical day, with historical workdays preserved.
+- “New pizza” creates an idempotent evidence record for the logged-in chef, links it to that shared current workday, and persists the chef’s selected pizza across reloads.
+- “Start timer” and “Start time” immediately start the current chef pizza’s eight-minute server timer. A digital timer does not need a second confirmation. Duplicate starts are still prevented server-side.
+- Proactive foreground rotation, pull-back and planned-finish reminders share the central speech controller, temporarily pausing listening and resuming afterward. Visible reminders are preserved when audio cannot play.
+- Affirmative chef statements (“I rotated it,” “I pulled it back,” “I took it out”) log actual actions for the focused pizza; questions and imperatives do not.
+- New Pizza, Start Timer, Current Pizza and Time Left quick actions appear directly in Agent Chat. Per-chef active pizza, timers and linked pizza history avoid cross-user focus changes; the day itself is shared.
+- Fresh schema and idempotent database upgrade provide nullable historical creator attribution, unique chat creation event IDs, `chat_pizza_focus` and a unique daily workday registry. Backups and `upgrade.php` are required on existing installations.
+- CI adds real two-chef HTTP/MySQL tests for shared daily workdays, next-day rollover, ownership, workday linkage, duplicate prevention, focus restoration and timer startup. Browser microphone and actual oven acceptance remain manual.
+
+---
+
 # Pizza Lab v1.5.16F — Agent Chat, Hands-Free Timer and Oven Resizing
 
 - The Agent Chat sidebar opens existing workspace tools in a same-origin panel without leaving the chat; validated workspace hashes open the correct tabs.

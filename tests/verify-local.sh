@@ -32,6 +32,7 @@ node tests/verify-inline-camera.js
 
 # v1.5.10 deterministic commands and accessible hamburger navigation.
 node --check assets/agent_chat_commands.js
+php tests/verify-chat-pizza.php
 node --check assets/agent_chat_nav.js
 node tests/verify-chat-navigation.js
 php tests/verify-chat-navigation.php
@@ -47,7 +48,7 @@ node --check assets/agent_chat_camera.js
 php tests/verify-chat-camera-selection.php
 
 # Ensure the release package has current documentation, not an older version label.
-php -r '$n=file_get_contents("RELEASE_NOTES.md");$r=file_get_contents("README.md");if(!str_starts_with($n,"# Pizza Lab v1.5.16F")||!str_starts_with($r,"# Pizza Lab v1.5.16F")){fwrite(STDERR,"FAIL: v1.5.16F release documentation drift\\n");exit(1);}echo "PASS: current release documentation\\n";'
+php -r '$n=file_get_contents("RELEASE_NOTES.md");$r=file_get_contents("README.md");if(!str_starts_with($n,"# Pizza Lab v1.5.16G")||!str_starts_with($r,"# Pizza Lab v1.5.16G")){fwrite(STDERR,"FAIL: v1.5.16G release documentation drift\\n");exit(1);}echo "PASS: current release documentation\\n";'
 
 php tests/verify-upgrade-preflight.php
 

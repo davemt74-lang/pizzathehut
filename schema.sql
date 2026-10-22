@@ -74,6 +74,8 @@ CREATE TABLE IF NOT EXISTS dough_batch_events (
 ) ENGINE=InnoDB;
 CREATE TABLE IF NOT EXISTS evidence (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ created_by_user_id BIGINT UNSIGNED NULL COMMENT 'NULL for historical evidence with unknown creator',
+ chat_create_request_id VARCHAR(90) NULL,
  recipe_id BIGINT UNSIGNED NULL,
  batch_id BIGINT UNSIGNED NULL,
  label VARCHAR(180) NOT NULL,
@@ -95,6 +97,9 @@ CREATE TABLE IF NOT EXISTS evidence (
  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
  INDEX (recipe_id),
  INDEX idx_evidence_batch (batch_id),
+ INDEX idx_evidence_creator (created_by_user_id,id),
+ UNIQUE KEY uniq_evidence_chat_request (created_by_user_id,chat_create_request_id),
+ CONSTRAINT fk_evidence_creator FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE RESTRICT,
  CONSTRAINT fk_evidence_batch FOREIGN KEY (batch_id) REFERENCES dough_batches(id) ON DELETE SET NULL,
  CONSTRAINT fk_evidence_recipe FOREIGN KEY (recipe_id) REFERENCES recipes(id)
 ) ENGINE=InnoDB;
@@ -326,6 +331,14 @@ CREATE TABLE IF NOT EXISTS workdays (
  INDEX idx_workday_date (work_date,id),
  CONSTRAINT fk_workday_creator FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
+-- One canonical, automatically opened kitchen day shared by all signed-in chefs.
+-- Older multiple workdays are preserved; one can be selected as the active day.
+CREATE TABLE IF NOT EXISTS workday_daily_registry (
+ work_date DATE PRIMARY KEY,
+ workday_id BIGINT UNSIGNED NULL UNIQUE,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ CONSTRAINT fk_daily_workday FOREIGN KEY (workday_id) REFERENCES workdays(id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
 CREATE TABLE IF NOT EXISTS workday_batch_events (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
  workday_id BIGINT UNSIGNED NOT NULL,
@@ -350,6 +363,14 @@ CREATE TABLE IF NOT EXISTS workday_pizzas (
  CONSTRAINT fk_wp_evidence FOREIGN KEY (evidence_id) REFERENCES evidence(id) ON DELETE CASCADE,
  CONSTRAINT fk_wp_workday FOREIGN KEY (workday_id) REFERENCES workdays(id) ON DELETE CASCADE,
  CONSTRAINT fk_wp_user FOREIGN KEY (recorded_by_user_id) REFERENCES users(id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
+-- v1.5.16G: each chef's current pizza survives page reloads and device changes.
+CREATE TABLE IF NOT EXISTS chat_pizza_focus (
+ user_id BIGINT UNSIGNED PRIMARY KEY,
+ evidence_id BIGINT UNSIGNED NOT NULL,
+ updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ CONSTRAINT fk_pizza_focus_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+ CONSTRAINT fk_pizza_focus_evidence FOREIGN KEY (evidence_id) REFERENCES evidence(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 -- v1.5.4 comparison reviews are evidence snapshots, not authoritative measurements.
 CREATE TABLE IF NOT EXISTS visual_comparisons (

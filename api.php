@@ -14,6 +14,7 @@ require_once __DIR__.'/kitchen_reminder_lib.php';
 require_once __DIR__.'/chat_kitchen_lib.php';
 require_once __DIR__.'/chat_batch_guide_lib.php';
 require_once __DIR__.'/workday_context_lib.php';
+require_once __DIR__.'/chat_pizza_lib.php';
 header('Cache-Control: no-store');
 try {
     $action=(string)($_GET['action'] ?? $_POST['action'] ?? '');
@@ -26,7 +27,8 @@ try {
             $counts=['recipes'=>count($recipes),'tests'=>(int)db()->query('SELECT COUNT(*) FROM evidence')->fetchColumn(),'photos'=>(int)db()->query("SELECT COUNT(*) FROM media WHERE kind IN ('top','bottom','side','crumb')")->fetchColumn(),'batches'=>(int)db()->query('SELECT COUNT(*) FROM dough_batches')->fetchColumn()];
             json_out(['ok'=>true,'recipes'=>$recipes,'recipe_steps'=>$recipeSteps,'batches'=>$batches,'batch_makers'=>query('SELECT id,display_name,is_active FROM users ORDER BY display_name,id')->fetchAll(),'evidence'=>$evidence,'counts'=>$counts,'voice_profile'=>query('SELECT profile_name,wake_phrase,language,voice_uri,voice_rate,require_wake,start_alias FROM voice_profiles WHERE user_id=?',[auth()])->fetch() ?: null,'experiments'=>lab_experiments(),'ovens'=>query('SELECT id,name FROM oven_layouts ORDER BY name,id LIMIT 80')->fetchAll(),'settings'=>['model'=>setting('model','claude-haiku-5-5'),'key_configured'=>setting('claude_key')!=='']]);
         }
-        if ($action==='kitchenTimers') { json_out(['ok'=>true,'timers'=>lab_timer_list()]); }
+        if ($action==='kitchenTimers') { json_out(['ok'=>true,'timers'=>lab_timer_list(($_GET['mine']??'')==='1'?auth():null)]); }
+        if ($action==='chatPizzaContext') { json_out(['ok'=>true,'context'=>lab_chat_pizza_context(auth())]); }
         if ($action==='chatKitchenAwareness') { json_out(['ok'=>true,'awareness'=>lab_kitchen_awareness(auth())]); }
         if ($action==='cookActivity') {
             $id=(int)($_GET['evidence_id']??0);row_owned('evidence',$id);
@@ -53,7 +55,11 @@ try {
             $date=(string)($_GET['date']??'');
             $dayId=isset($_GET['workday_id'])?filter_var($_GET['workday_id'],FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]):null;
             if($dayId===false)fail('Invalid workday selection.');
-            json_out(['ok'=>true,'context'=>lab_chat_workday_context($date,$dayId===null?null:(int)$dayId)]);
+            if($dayId===null){
+                $canonical=query('SELECT workday_id FROM workday_daily_registry WHERE work_date=?',[$date])->fetchColumn();
+                if($canonical!==false&&$canonical!==null)$dayId=(int)$canonical;
+            }
+            json_out(['ok'=>true,'context'=>lab_chat_workday_context($date,$dayId===null?null:(int)$dayId,auth())]);
         }
         if ($action==='chatWorkdays') {
             $days=query('SELECT id,work_date,title FROM workdays ORDER BY work_date DESC,id DESC LIMIT 25')->fetchAll();
@@ -127,7 +133,14 @@ try {
     }
     if ($action==='generateProposal') { json_out(['ok'=>true,...lab_generate_proposal($d)]); }
     if ($action==='decideProposal') { json_out(['ok'=>true,...lab_decide_proposal($d)]); }
-    if ($action==='kitchenReminderPoll') { json_out(['ok'=>true,'reminders'=>lab_reminder_poll(auth())]); }
+    if ($action==='kitchenReminderPoll') { json_out(['ok'=>true,'reminders'=>lab_reminder_poll(auth(),($d['mine']??false)===true)]); }
+    if ($action==='chatEnsureWorkday') { json_out(['ok'=>true,'day'=>lab_chat_daily_workday_ensure((string)($d['work_date']??''),auth())]); }
+    if ($action==='chatNewPizza') { json_out(['ok'=>true,...lab_chat_pizza_new($d,auth())]); }
+    if ($action==='chatSelectPizza') {
+        $id=filter_var($d['evidence_id']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+        if($id===false||$id===null)fail('Select a valid pizza number.');
+        json_out(['ok'=>true,'pizza'=>lab_chat_pizza_focus(auth(),(int)$id)]);
+    }
     if ($action==='chatBatchStart') { json_out(['ok'=>true,...lab_chat_batch_start($d,auth())]); }
     if ($action==='chatBatchStep') { json_out(['ok'=>true,...lab_chat_batch_step($d,auth())]); }
     if ($action==='chatKitchenAction') {json_out(['ok'=>true,...lab_kitchen_action_save($d)]);}
@@ -138,10 +151,10 @@ try {
         if(!lab_valid_work_date($date))fail('Invalid work date.');
         $title=plain($d['title']??'Pizza production',160);
         if($title==='')$title='Pizza production';
-        $existing=query('SELECT id FROM workdays WHERE work_date=? AND title=? AND created_by_user_id=? ORDER BY id DESC LIMIT 1',[$date,$title,auth()])->fetchColumn();
-        if($existing!==false)json_out(['ok'=>true,'id'=>(int)$existing,'existing'=>true]);
-        query('INSERT INTO workdays (work_date,title,notes,created_by_user_id) VALUES (?,?,?,?)',[$date,$title,'',auth()]);
-        json_out(['ok'=>true,'id'=>(int)db()->lastInsertId(),'existing'=>false]);
+        // Legacy manual command shares the exact same daily reservation as automatic Chat.
+        $existing=query('SELECT workday_id FROM workday_daily_registry WHERE work_date=?',[$date])->fetchColumn();
+        $day=lab_chat_daily_workday_ensure($date,auth(),$title);
+        json_out(['ok'=>true,'id'=>(int)$day['id'],'existing'=>$existing!==false&&$existing!==null,'title'=>$day['title']]);
     }
     if ($action==='batchCoachAsk') {json_out(['ok'=>true,'review'=>lab_coach_ask($d)]);}
     if ($action==='createExperiment') { json_out(['ok'=>true,'id'=>lab_create_experiment($d)]); }
@@ -301,7 +314,7 @@ try {
         };
         $v=[$recipe,$batchId,$label,$optionalNumber('pizza_size_in',3,30),$optionalNumber('dough_ball_g',10,5000),$optionalNumber('sauce_g',0,2000),$optionalNumber('cheese_g',0,2000),$optionalNumber('dough_age_h',0,2000),$optionalNumber('stone_start_f',0,1500),$optionalNumber('stone_finish_f',0,1500),$moisture===null?null:(int)$moisture,$rating('rim_rise_score'),$rating('crispness_score'),$rating('bottom_color_score'),$bake===null?null:(int)$bake,$load===null?null:(int)$load,plain($d['notes']??'',10000)];
         if ($id) query('UPDATE evidence SET recipe_id=?,batch_id=?,label=?,pizza_size_in=?,dough_ball_g=?,sauce_g=?,cheese_g=?,dough_age_h=?,stone_start_f=?,stone_finish_f=?,cheese_moisture=?,rim_rise_score=?,crispness_score=?,bottom_color_score=?,bake_seconds=?,oven_load=?,notes=? WHERE id=?',[...$v,$id]);
-        else {query('INSERT INTO evidence (recipe_id,batch_id,label,pizza_size_in,dough_ball_g,sauce_g,cheese_g,dough_age_h,stone_start_f,stone_finish_f,cheese_moisture,rim_rise_score,crispness_score,bottom_color_score,bake_seconds,oven_load,notes) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',$v);$id=(int)db()->lastInsertId();}
+        else {query('INSERT INTO evidence (created_by_user_id,recipe_id,batch_id,label,pizza_size_in,dough_ball_g,sauce_g,cheese_g,dough_age_h,stone_start_f,stone_finish_f,cheese_moisture,rim_rise_score,crispness_score,bottom_color_score,bake_seconds,oven_load,notes) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',[auth(),...$v]);$id=(int)db()->lastInsertId();}
         json_out(['ok'=>true,'id'=>$id]);
     }
     if ($action==='cookActivity') {

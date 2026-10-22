@@ -175,6 +175,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             db()->exec($m[0]);
             $results[]='v1.5.4 '. $tableName .' ready';
         }
+        if (!preg_match('/CREATE TABLE IF NOT EXISTS workday_daily_registry \(.*?\) ENGINE=InnoDB;/s',$schema,$dailyDay)) throw new RuntimeException('Missing shared daily workday schema.');
+        db()->exec($dailyDay[0]);
+        $results[]='One shared active workday per calendar date ready';
         // Create-only v1.5.5 upgrades: no edits to historical readings or recipes.
         foreach (['oven_layouts','oven_zone_readings','dough_readiness_checks','pizza_tracker_boxes'] as $tableName) {
             $pattern='/CREATE TABLE IF NOT EXISTS '.preg_quote($tableName,'/').' \(.*?\) ENGINE=InnoDB;/s';
@@ -214,6 +217,29 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             db()->exec($m[0]);
             $results[]='v1.5.16C '.$tableName.' ready';
         }
+        // v1.5.16G: do not assign historical pizzas to an invented chef.
+        if (!$columnExists('evidence','created_by_user_id')) {
+            db()->exec('ALTER TABLE evidence ADD COLUMN created_by_user_id BIGINT UNSIGNED NULL AFTER id');
+            $results[]='Added nullable pizza creator (historical unknowns preserved)';
+        }
+        if (!$columnExists('evidence','chat_create_request_id')) {
+            db()->exec('ALTER TABLE evidence ADD COLUMN chat_create_request_id VARCHAR(90) NULL AFTER created_by_user_id');
+            $results[]='Added idempotent chat pizza creation identifier';
+        }
+        $pizzaCreatorFk=(int)query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='evidence' AND COLUMN_NAME='created_by_user_id' AND REFERENCED_TABLE_NAME='users'")->fetchColumn();
+        if (!$pizzaCreatorFk){db()->exec('ALTER TABLE evidence ADD CONSTRAINT fk_evidence_creator FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE RESTRICT');$results[]='Linked pizza creator to account';}
+        foreach (['idx_evidence_creator'=>'(created_by_user_id,id)','uniq_evidence_chat_request'=>'(created_by_user_id,chat_create_request_id)'] as $key=>$fields){
+            if (!(int)query('SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND INDEX_NAME=?',['evidence',$key])->fetchColumn()) {
+                db()->exec('ALTER TABLE evidence ADD '.($key==='uniq_evidence_chat_request'?'UNIQUE ':'').'INDEX '.$key.' '.$fields);
+                $results[]='Indexed '.$key;
+            }
+        }
+        // Attribution can be backfilled only where the pre-existing workday link
+        // explicitly named the user who recorded that historical pizza.
+        query('UPDATE evidence e JOIN workday_pizzas w ON w.evidence_id=e.id SET e.created_by_user_id=w.recorded_by_user_id WHERE e.created_by_user_id IS NULL');
+        if (!preg_match('/CREATE TABLE IF NOT EXISTS chat_pizza_focus \(.*?\) ENGINE=InnoDB;/s',$schema,$pizzaFocus)) throw new RuntimeException('Missing chat pizza focus schema.');
+        db()->exec($pizzaFocus[0]);
+        $results[]='v1.5.16G chef pizza focus ready';
         $results[]='v1.4.1 batch maker attribution and role-aware access verified';
     } catch (Throwable $e) {
         error_log('Pizza Lab upgrade failure: '.$e->getMessage());
