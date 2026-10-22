@@ -1,3 +1,17 @@
+# Pizza Lab v1.5.16F — Agent Chat-First Oven & Voice Workflow
+
+**Agent Chat is the home screen.** Existing tools (oven layout, live oven and timers, recipes, batches, evidence, heat map, and settings) now open in an in-chat workspace panel, keeping the conversation available. Voice commands such as “open oven layout,” “open live oven,” and “open Claude settings” select the relevant tool. Workspace hash links such as `index.php?workspace=1#live` now navigate correctly internally; chefs no longer need to type that URL to reach the live tools.
+
+**Listening mode:** After a chef taps the microphone over HTTPS and grants access, completed speech turns submit automatically without pressing Send. Listening resumes after the reply or spoken guidance while the page is foregrounded. The microphone stops when the page is hidden, and browser permissions and speech support still apply. Saying **“start timer”** now selects the current pizza if one exists, or prompts for a pizza number if several exist; the server-side timer starts only after an explicit **“confirm timer”** response or the confirmation button. A missing pizza record produces guidance instead of a failing AI query.
+
+**Oven builder:** Temperature-zone footprints are drawn from their saved radii. Drag each green center to move a zone and the orange edge handle to resize its radius (also keyboard-accessible). Save the layout to persist it. Fire placement is still draggable. Super Admin can enter or replace the encrypted Anthropic API key and model from Agent Chat’s account controls; keys are never shown back to the browser.
+
+**Limitations:** This is foreground, browser-permission-based speech recognition, not a background hot mic or an autonomous closed-browser oven monitor. In-chat tools reuse existing permission-checked PHP pages, and not every administrative action has a natural-language command yet. No schema migration is required beyond the v1.5.16E baseline. Physical microphone/oven verification remains a deployment acceptance step.
+
+**Upgrade:** Back up MySQL, `config.php`, and private uploads before deploying. Preserve those files. Pizza Lab remains completely separate from Gelato.
+
+---
+
 # Pizza Lab v1.5.16E — Integrated Kitchen Awareness
 
 **Purpose:** Make the standalone Pizza Lab agent aware of the actual current kitchen activity when a chef asks for help. The Claude coaching path now receives a **bounded, timestamped, read-only MySQL snapshot** of the signed-in chef's active dough guide(s) and the team's active pizza timer(s), alongside existing measured historical evidence. It includes the next persisted dough step, elapsed timer state, planned target, advisory reminder events and **only actual chef-confirmed physical movements from the current timer run**. This enables questions such as “What's happening with the dough batch?” and “How long has the pizza been cooking?” without claiming the agent physically did something.

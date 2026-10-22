@@ -4,7 +4,12 @@ const APP_ROOT = __DIR__;
 const DATA_ROOT = __DIR__ . '/private';
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: same-origin');
-header('X-Frame-Options: DENY');
+$frameableTools=['index.php','workdays.php','gallery.php','proposals.php','batch_insights.php','readiness.php','oven_layout.php','heatmap.php','cooking_patterns.php','visual_compare.php','pizza_tracker.php'];
+// Keep same-origin tool navigation usable after redirects, form posts and links;
+// the whitelist still rejects cross-origin frames and all other app pages.
+$frameableTool=in_array(basename($_SERVER['SCRIPT_NAME']??''),$frameableTools,true);
+if($frameableTool){header('X-Frame-Options: SAMEORIGIN');header("Content-Security-Policy: frame-ancestors 'self'");}
+else header('X-Frame-Options: DENY');
 if (!is_file(APP_ROOT . '/config.php')) {
     if (basename($_SERVER['SCRIPT_NAME'] ?? '') !== 'install.php') {
         if (str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') || basename($_SERVER['SCRIPT_NAME'] ?? '') === 'api.php') {

@@ -17,6 +17,7 @@ php tests/verify-proposals.php
 php tests/verify-workdays.php
 php tests/verify-readiness-oven.php
 node --check assets/oven_layout.js
+node tests/verify-oven-resize.js
 node --check assets/pizza_tracker.js
 php tests/verify-heatmap.php
 node --check assets/heatmap.js
@@ -46,7 +47,7 @@ node --check assets/agent_chat_camera.js
 php tests/verify-chat-camera-selection.php
 
 # Ensure the release package has current documentation, not an older version label.
-php -r '$n=file_get_contents("RELEASE_NOTES.md");$r=file_get_contents("README.md");if(!str_starts_with($n,"# Pizza Lab v1.5.16E")||!str_starts_with($r,"# Pizza Lab v1.5.16E")){fwrite(STDERR,"FAIL: v1.5.16E release documentation drift\\n");exit(1);}echo "PASS: current release documentation\\n";'
+php -r '$n=file_get_contents("RELEASE_NOTES.md");$r=file_get_contents("README.md");if(!str_starts_with($n,"# Pizza Lab v1.5.16F")||!str_starts_with($r,"# Pizza Lab v1.5.16F")){fwrite(STDERR,"FAIL: v1.5.16F release documentation drift\\n");exit(1);}echo "PASS: current release documentation\\n";'
 
 php tests/verify-upgrade-preflight.php
 

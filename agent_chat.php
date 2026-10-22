@@ -45,8 +45,13 @@ body{margin:0}.coach{max-width:930px;margin:0 auto;padding:12px 14px 140px;min-h
 .coach-camera-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 13px;border-bottom:1px solid var(--edge)}
 .coach-camera-head a{font-size:.78rem}.coach-camera-head button{min-height:36px;padding:6px 12px}
 .coach-camera-frame{flex:1;display:block;width:100%;height:100%;border:0;background:#111b24}
+.coach-tool-panel[hidden]{display:none!important}
+.coach-tool-panel{position:fixed;z-index:10;inset:10px max(10px,calc((100vw - 1100px)/2)) 94px;background:#111b24;border:1px solid #506578;border-radius:19px;display:flex;flex-direction:column;box-shadow:0 12px 45px #000b;overflow:hidden}
+.coach-tool-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 13px;border-bottom:1px solid var(--edge)}
+.coach-tool-head h2{font-size:1rem;margin:0}.coach-tool-head button{min-height:38px;padding:6px 12px}
+.coach-tool-frame{flex:1;display:block;width:100%;height:100%;border:0;background:#111b24}
 .coach-action[aria-expanded=true]{outline:2px solid var(--accent)}
-@media(max-width:600px){.coach-camera-panel{inset:6px 6px 104px;border-radius:14px}.coach-camera-head{padding:7px 10px}}
+@media(max-width:600px){.coach-camera-panel,.coach-tool-panel{inset:6px 6px 104px;border-radius:14px}.coach-camera-head{padding:7px 10px}}
 @media(max-width:600px){.coach{padding:9px 10px 142px}.coach-top{gap:6px}.coach-top a{font-size:.78rem}.coach-inputbar{gap:5px}.coach-message{padding:13px}}
 
 .chat-menu-toggle{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;font-size:1.4rem;flex:none}
@@ -118,7 +123,8 @@ body.chat-nav-open{overflow:hidden}
   <a class="chat-nav-link" href="visual_compare.php"><span>◈</span> Crust comparison</a>
   <a class="chat-nav-link" href="pizza_tracker.php"><span>▣</span> Full-screen tracker</a>
   <p class="chat-nav-heading">Account</p>
-  <a class="chat-nav-link" href="index.php?workspace=1#settings"><span>⚙</span> Voice &amp; settings</a>
+  <?php if(is_super_admin()):?><button type="button" class="chat-nav-link" data-account-panel="ai" style="width:100%;border:0;background:transparent;text-align:left"><span>✦</span> Claude API &amp; model</button><?php endif;?>
+  <a class="chat-nav-link" href="index.php?workspace=1#settings"><span>⚙</span> Workspace settings</a>
   <?php if(is_super_admin()):?><a class="chat-nav-link" href="index.php?workspace=1#team"><span>♙</span> Team administration</a><?php endif;?>
  </nav>
  <div class="chat-nav-footer">Signed in as <span id="chatSignedInAs"><?=htmlspecialchars((string)$user['display_name'],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')?></span></div>
@@ -127,11 +133,12 @@ body.chat-nav-open{overflow:hidden}
  <form id="chatProfileForm" class="chat-account-form" autocomplete="on"><label>Display name<input name="display_name" type="text" maxlength="120" required autocomplete="name"></label><label>Email / sign-in address<input name="email" type="email" maxlength="190" required autocomplete="email"></label><label>Current password (only needed to change email)<input name="current_password" type="password" autocomplete="current-password"></label><p class="small coach-muted">Role: <?=htmlspecialchars($user['role']==='super_admin'?'Super Admin':'Team Member',ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')?>. Email changes take effect immediately; only an administrator can manage roles.</p><button type="submit" class="primary">Save profile</button></form>
  <form id="chatVoiceForm" class="chat-account-form" hidden><label>Voice profile name<input name="profile_name" type="text" maxlength="80" required></label><label>Wake phrase<input name="wake_phrase" type="text" maxlength="40" required placeholder="pizza"></label><label>Recognition language<select name="language"><option value="en-US">English (US)</option><option value="en-GB">English (UK)</option><option value="en-AU">English (AU)</option></select></label><label>Spoken response voice<select name="voice_uri"><option value="">Device default</option></select></label><label>Speaking speed <output id="chatRateValue">0.95×</output><input name="voice_rate" type="range" min="0.6" max="1.5" step="0.05" value="0.95"></label><label>Optional timer start alias<input name="start_alias" type="text" maxlength="70" placeholder="start bake"></label><label style="display:flex;align-items:center;gap:10px"><input name="require_wake" type="checkbox" checked> Require wake phrase for timer commands</label><p class="small coach-muted">Voice profiles are preferences, not biometric identity. Browser microphone access requires permission and an active HTTPS page.</p><button type="submit" class="primary">Save voice settings</button></form>
  <form id="chatPasswordForm" class="chat-account-form" hidden><label>Current password<input name="current_password" type="password" autocomplete="current-password" required></label><label>New password (12+ characters)<input name="new_password" type="password" autocomplete="new-password" minlength="12" maxlength="1024" required></label><label>Confirm new password<input name="confirm_password" type="password" autocomplete="new-password" minlength="12" maxlength="1024" required></label><button type="submit" class="primary">Change password</button></form>
+  <?php if(is_super_admin()):?><form id="chatAiForm" class="chat-account-form" hidden><p class="small" id="chatAiConfigured" role="status"></p><label>Claude model ID<input name="model" type="text" value="<?=htmlspecialchars(setting('model','claude-haiku-5-5'),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')?>" maxlength="100" required></label><label>Anthropic API key<input name="api_key" type="password" autocomplete="off" placeholder="sk-ant-… (leave blank to keep current key)"></label><label style="display:flex;gap:10px;align-items:center"><input name="remove_key" type="checkbox"> Remove saved API key</label><p class="small coach-muted">Your key is encrypted on the server and never returned to the browser. Only Super Admin can change it.</p><button type="submit" class="primary">Save Claude settings</button></form><?php endif;?>
  <div id="chatAccountStatus" class="chat-dialog-status" role="status" aria-live="polite"></div></div></dialog>
 <main class="coach">
 <header class="coach-top"><button type="button" id="chatNavToggle" class="chat-menu-toggle" aria-label="Open main menu" aria-controls="chatNav" aria-expanded="false">☰</button><h1>Pizza Lab</h1>
  <div class="chat-account"><button type="button" id="chatAccountToggle" class="chat-account-toggle" aria-label="Account menu" aria-haspopup="menu" aria-expanded="false" aria-controls="chatAccountMenu"><span id="chatAccountInitial" class="chat-account-initial"><?=htmlspecialchars($initial,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')?></span><span id="chatAccountName" class="chat-account-name"><?=htmlspecialchars((string)$user['display_name'],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')?></span><span aria-hidden="true">⌄</span></button>
- <div id="chatAccountMenu" class="chat-account-menu" role="menu" aria-label="Account" hidden><button type="button" role="menuitem" data-account-panel="profile">My profile</button><button type="button" role="menuitem" data-account-panel="voice">Voice settings</button><button type="button" role="menuitem" data-account-panel="password">Change password</button><form method="post" action="auth.php?logout=1"><input type="hidden" name="csrf" value="<?=htmlspecialchars(csrf(),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')?>"><button type="submit" role="menuitem">Log out</button></form></div></div></header>
+ <div id="chatAccountMenu" class="chat-account-menu" role="menu" aria-label="Account" hidden><button type="button" role="menuitem" data-account-panel="profile">My profile</button><button type="button" role="menuitem" data-account-panel="voice">Voice settings</button><?php if(is_super_admin()):?><button type="button" role="menuitem" data-account-panel="ai">Claude API &amp; model</button><?php endif;?><button type="button" role="menuitem" data-account-panel="password">Change password</button><form method="post" action="auth.php?logout=1"><input type="hidden" name="csrf" value="<?=htmlspecialchars(csrf(),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')?>"><button type="submit" role="menuitem">Log out</button></form></div></div></header>
 <p class="coach-intro">Ask about your dough, cooking technique, or any recipe. Answers use saved evidence when available.</p>
 <section id="chatWorkdayContext" class="chat-workday-context" aria-live="polite" aria-label="Today's recorded workday" hidden></section>
 <details class="coach-context"><summary>Evidence scope · all recipes by default</summary><div class="coach-row"><label>Analyze<select id="scope"><option value="all" <?=$scope==='all'?'selected':''?>>All recipes & batches</option><option value="recipe" <?=$scope==='recipe'?'selected':''?>>One recipe or variation</option><option value="batch" <?=$scope==='batch'?'selected':''?>>One batch</option></select></label><label id="targetRow">Recipe / batch<select id="target"></select></label></div>
@@ -140,6 +147,10 @@ body.chat-nav-open{overflow:hidden}
 <section id="chatCameraPanel" class="coach-camera-panel" aria-label="In-chat pizza camera" hidden>
  <header class="coach-camera-head"><strong>Live pizza camera</strong><a href="pizza_tracker.php" target="_blank" rel="noopener">Open full screen ↗</a><button type="button" id="chatCameraClose" aria-label="Close pizza camera">✕ Close</button></header>
  <iframe id="chatCameraFrame" class="coach-camera-frame" title="Pizza tracker and image analysis" allow="camera; microphone" referrerpolicy="same-origin"></iframe>
+</section>
+<section id="chatToolPanel" class="coach-tool-panel" aria-label="In-chat workspace tool" hidden>
+ <header class="coach-tool-head"><h2 id="chatToolTitle">Pizza Lab tool</h2><button type="button" id="chatToolClose" aria-label="Close tool and return to chat">✕ Return to chat</button></header>
+ <iframe id="chatToolFrame" class="coach-tool-frame" title="Pizza Lab workspace tool" loading="lazy" allow="camera; microphone" referrerpolicy="same-origin"></iframe>
 </section>
 <form id="coachForm" class="coach-form">
  <div class="coach-inputbar">
@@ -163,6 +174,7 @@ window.PIZZA_CHAT_CSRF=CSRF;
 window.PIZZA_CHAT_VOICE=<?=json_encode($voiceProfile,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_QUOT|JSON_HEX_APOS)?>;
 window.PIZZA_CHAT_WAKE=<?=json_encode($voiceProfile['wake_phrase']??'pizza',JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_QUOT|JSON_HEX_APOS)?>;
 window.PIZZA_CHAT_LANGUAGE=<?=json_encode($voiceProfile['language']??'en-US',JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_QUOT|JSON_HEX_APOS)?>;
+window.PIZZA_CHAT_AI={model:<?=json_encode(setting('model','claude-haiku-5-5'),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_QUOT|JSON_HEX_APOS)?>,key_configured:<?=setting('claude_key')!==''?'true':'false'?>};
 const el=id=>document.getElementById(id);
 function context(){return {scope:el('scope').value,target_id:el('scope').value==='all'?null:el('target').value};}
 function choose(preset){const t=el('target'),scope=el('scope').value,items=scope==='batch'?BATCHES:RECIPES;t.replaceChildren();for(const x of items){const opt=document.createElement('option');opt.value=x.id;opt.textContent=scope==='batch'?x.batch_code+' · '+x.recipe_name:x.name;t.append(opt);}if(preset&&items.some(x=>String(x.id)===preset))t.value=preset;el('targetRow').hidden=scope==='all';el('coachHistory').replaceChildren();}
@@ -185,7 +197,17 @@ async function loadHistory(){const c=context(),qs=new URLSearchParams({action:'b
 el('scope').addEventListener('change',()=>{choose();loadHistory().catch(e=>el('coachStatus').textContent=e.message);});
 el('target').addEventListener('change',()=>loadHistory().catch(e=>el('coachStatus').textContent=e.message));
 el('coachForm').addEventListener('submit',async ev=>{ev.preventDefault();
-if(await window.pizzaChatCommands?.(el('question').value)){el('question').value='';return;}
-const button=el('send');button.disabled=true;el('coachStatus').textContent='Analyzing available evidence…';try{const r=await fetch('api.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF},body:JSON.stringify({action:'batchCoachAsk',...context(),question:el('question').value,workday_date:window.pizzaChatLocalWorkdayDate?.()||null,workday_id:window.pizzaChatSelectedWorkdayId??null})});const d=await r.json();if(!r.ok||!d.ok)throw Error(d.error||'Claude request failed');show(d.review);window.dispatchEvent(new CustomEvent('pizza-chat-reply',{detail:{text:d.review?.analysis?.summary||''}}));el('question').value='';el('coachStatus').textContent='Report saved from '+d.review.snapshot_batches+' batch(es). No automatic changes.';window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});}catch(e){el('coachStatus').textContent=e.message;window.dispatchEvent(new Event('pizza-chat-reply-error'));}finally{button.disabled=false;}});
+ const question=el('question').value.trim();if(!question)return;
+ const button=el('send');if(button.disabled)return;
+ button.disabled=true;window.dispatchEvent(new Event('pizza-chat-response-start'));
+ try{
+  if(await window.pizzaChatCommands?.(question)){el('question').value='';return;}
+  el('coachStatus').textContent='Analyzing available evidence…';
+  const r=await fetch('api.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF},body:JSON.stringify({action:'batchCoachAsk',...context(),question,workday_date:window.pizzaChatLocalWorkdayDate?.()||null,workday_id:window.pizzaChatSelectedWorkdayId??null})});
+  const d=await r.json();if(!r.ok||!d.ok)throw Error(d.error||'Claude request failed');
+  show(d.review);window.dispatchEvent(new CustomEvent('pizza-chat-reply',{detail:{text:d.review?.analysis?.summary||''}}));el('question').value='';el('coachStatus').textContent='Report saved from '+d.review.snapshot_batches+' batch(es). No automatic changes.';window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+ }catch(e){el('coachStatus').textContent=e.message;window.dispatchEvent(new Event('pizza-chat-reply-error'));}
+ finally{button.disabled=false;window.dispatchEvent(new Event('pizza-chat-response-complete'));}
+});
 choose(FIRST);loadHistory().catch(e=>el('coachStatus').textContent=e.message);
-</script><script defer src="assets/agent_chat_timers.js?v=1.5.16b"></script><script defer src="assets/agent_chat_workday.js?v=1.5.14"></script><script defer src="assets/agent_chat_nav.js?v=1.5.12"></script><script defer src="assets/agent_chat_batch.js?v=1.5.16d"></script><script defer src="assets/agent_chat_commands.js?v=1.5.16d"></script><script defer src="assets/agent_chat_camera.js?v=1.5.12"></script><script defer src="assets/agent_chat_voice.js?v=1.5.16d"></script><script defer src="assets/agent_chat_account.js?v=1.5.12"></script></body></html>
+</script><script defer src="assets/agent_chat_timers.js?v=1.5.16F"></script><script defer src="assets/agent_chat_workday.js?v=1.5.16F"></script><script defer src="assets/agent_chat_nav.js?v=1.5.16F"></script><script defer src="assets/agent_chat_batch.js?v=1.5.16F"></script><script defer src="assets/agent_chat_commands.js?v=1.5.16F"></script><script defer src="assets/agent_chat_camera.js?v=1.5.16F"></script><script defer src="assets/agent_chat_voice.js?v=1.5.16F"></script><script defer src="assets/agent_chat_account.js?v=1.5.16F"></script></body></html>

@@ -1,3 +1,14 @@
+# Pizza Lab v1.5.16F — Agent Chat, Hands-Free Timer and Oven Resizing
+
+- The Agent Chat sidebar opens existing workspace tools in a same-origin panel without leaving the chat; validated workspace hashes open the correct tabs.
+- Super Admin Claude API key/model controls are now accessible directly from Agent Chat and use the existing encrypted `saveSettings` endpoint.
+- Foreground listening sends recognized speech automatically, re-arms between replies and narration, handles mic loss, and stops when hidden. Microphone permission still requires a user action.
+- “Start timer” now offers an eligible saved pizza selection and uses explicit voice/button confirmation for the server-owned timer; no record creates no timer. Timer deduplication and activity permissions remain server enforced.
+- The oven layout builder draws physical-size zone radii and provides draggable, keyboard-accessible orange resize handles; save to persist the result.
+- Node regression coverage includes automatic voice submission and oven radius persistence; PHP/MySQL CI and real-device acceptance remain mandatory before release.
+
+---
+
 # Pizza Lab v1.5.16E — Integrated Agent Awareness and Certification
 
 - Claude's **read-only** coaching analysis now sees a compact current kitchen snapshot: up to eight current user's dough guide sessions and twelve shared active pizza timers.

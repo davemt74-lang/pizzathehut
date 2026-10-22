@@ -6,6 +6,8 @@ $api=file_get_contents($root.'/api.php');
 $cmd=file_get_contents($root.'/assets/agent_chat_commands.js');
 $cam=file_get_contents($root.'/assets/agent_chat_camera.js');
 $nav=file_get_contents($root.'/assets/agent_chat_nav.js');
+$workspace=file_get_contents($root.'/assets/app.js');
+$bootstrap=file_get_contents($root.'/bootstrap.php');
 $assert=function(bool $b,string $name): void {if(!$b)throw new RuntimeException('FAIL: '.$name);};
 foreach(['id="chatNavToggle"','id="chatNavBackdrop"','id="chatNav"','id="chatNavClose"','aria-expanded="false"','inert hidden','id="chatMic"','id="chatCamera"'] as $fragment)$assert(str_contains($chat,$fragment),'Chat nav/footer: '.$fragment);
 foreach(['workdays.php','gallery.php','proposals.php','oven_layout.php','index.php?workspace=1#batches','index.php?workspace=1#recipes'] as $url)$assert(str_contains($chat,$url),'Menu link: '.$url);
@@ -17,4 +19,9 @@ $assert(str_contains($cmd,'confirmed:true')&&str_contains($cmd,'Confirm new work
 $assert(str_contains($cmd,'textContent')&&!str_contains($cmd,'innerHTML'),'Safe DOM text');
 $assert(str_contains($cam,'pizza-chat-camera-open')&&str_contains($cam,'pizza-chat-camera-close'),'In-chat camera controls');
 $assert(str_contains($nav,"e.key==='Escape'")&&str_contains($nav,'lastFocus'),'Accessible modal nav');
+$assert(str_contains($chat,'id="chatToolPanel"')&&str_contains($chat,'id="chatToolFrame"'),'Tools render inside Agent Chat');
+$assert(str_contains($nav,"url.searchParams.set('embedded','1')")&&str_contains($nav,'allowedTools')&&str_contains($nav,"url.origin!==window.location.origin"),'Only same-origin allowed PHP tools may be embedded');
+$assert(str_contains($nav,"toolFrame.removeAttribute('src')"),'Embedded tool tears down on close');
+$assert(str_contains($bootstrap,"X-Frame-Options: DENY")&&str_contains($bootstrap,"X-Frame-Options: SAMEORIGIN")&&str_contains($bootstrap,"frame-ancestors 'self'")&&str_contains($bootstrap,'$frameableTool=in_array'),'Only allowlisted same-origin tool frames survive form posts and redirects');
+$assert(str_contains($workspace,'routeWorkspaceHash')&&str_contains($workspace,"window.addEventListener('hashchange'"),'Direct tool deep links render target section');
 echo "PASS: chat navigation and workday approval source controls\n";

@@ -20,4 +20,7 @@ test_account(str_contains($chat,'action="auth.php?logout=1"')&&str_contains($cha
 test_account(str_contains($client,"'updateMyProfile'")&&str_contains($client,"'saveVoiceProfile'")&&str_contains($client,"'changeMyPassword'")&&str_contains($client,'confirm_password'),'on-chat account actions');
 test_account(str_contains($client,'X-CSRF-Token')&&str_contains($client,'textContent')&&!str_contains($client,'innerHTML'),'account controls use CSRF and safe text');
 test_account(str_contains($voice,'PIZZA_CHAT_LANGUAGE')&&str_contains($voice,'PIZZA_CHAT_VOICE'),'chat voice settings actually used');
+test_account(str_contains($chat,'id="chatAiForm"')&&str_contains($chat,'data-account-panel="ai"')&&str_contains($chat,'if(is_super_admin())'),'Claude API key managed directly in Super Admin chat');
+test_account(str_contains($client,"ai:'saveSettings'")&&str_contains($client,'fillAi()')&&str_contains($api,"if (\$action==='saveSettings')"),'On-chat Claude model/key saves through existing Super Admin API');
+test_account(str_contains($chat,"setting('claude_key')")&&!str_contains($chat,"decrypted_key("),'Chat reveals key status but never secret');
 echo "PASS: account profiles, email reauthentication, CSRF/source scoping, voice configuration and minimal chat navigation\n";

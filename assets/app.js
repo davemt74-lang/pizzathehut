@@ -148,6 +148,16 @@ function settingsView(){return head('AI, voice & settings','Manage your voice pr
 function modal(title,html){$('#modalTitle').textContent=title;$('#modalContent').innerHTML=html;$('#modal').showModal();}
 function closeModal(){$('#modal').close();}
 function navigate(page,rerender=true){if(state.page==='detail'&&page!=='detail'&&state.mediaRecorder?.state==='recording')state.mediaRecorder.stop();if(state.page==='live'&&page!=='live'){stopCamera();stopListening();}state.page=page;$$('#mainNav button').forEach(b=>b.classList.toggle('selected',b.dataset.page===page));$('#pageLabel').textContent=({overview:'Overview',recipes:'Recipes',batches:'Dough batches',batchDetail:'Batch analytics',evidence:'Pizza evidence',live:'Live scanner',settings:'Settings',team:'Team members',detail:'Evidence details',process:'Recipe steps',experiments:'Experiments'})[page];if(rerender)render();window.scrollTo({top:0,behavior:'instant'});$('.sidebar').classList.remove('open');}
+// Agent Chat links land in the full Workspace with a #page deep link.
+// Only known pages are routable; team management stays Super Admin-only.
+function routeWorkspaceHash(){
+ const page=window.location.hash.slice(1).toLowerCase();
+ if(!['overview','recipes','batches','evidence','live','experiments','settings','team'].includes(page))return false;
+ if(page==='team'&&window.PIZZA_LAB.role!=='super_admin')return false;
+ if(page==='experiments'){loadExperiments().catch(e=>toast(e.message,true));return true;}
+ navigate(page);return true;
+}
+window.addEventListener('hashchange',()=>{if(!routeWorkspaceHash())navigate('overview');});
 function render(){let p=state.page;$('#view').innerHTML=({overview:overview,recipes:recipesView,batches:batchesView,batchDetail:batchDetailView,evidence:evidenceView,live:liveView,settings:settingsView,team:teamView,detail:detailHtml,process:recipeProcessPage,experiments:experimentView}[p]||overview)();if(p==='live'){updateTimerUI();updateMicStatus();loadCookActivity(state.activeEvidence).catch(()=>{});}}
 function formDataObj(el){let d={};for(const [k,v] of new FormData(el)){d[k]=v;}return d;}
 async function execute(action,obj,success='Saved'){const out=await api(action,obj);toast(success);await refresh();return out;}
@@ -343,7 +353,7 @@ document.addEventListener('input',e=>{if(e.target.id==='ovenLoad'){let x=$('#loa
 $('#closeModal').addEventListener('click',closeModal);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){stopListening();if(state.scanner){state.scanner=false;clearInterval(state.scanInterval);}}if(document.visibilityState==='visible'&&state.timer.running&&elapsed()>=state.timer.duration){updateTimerUI();toast('Timer elapsed while app was backgrounded; check pizza immediately.',true);}});
 window.addEventListener('pagehide',()=>{stopCamera();stopListening();});
-(async()=>{try{let stored=localStorage.getItem(timerStorageKey);if(stored){let t=JSON.parse(stored);if(t&&typeof t==='object'&&!Array.isArray(t)){for(let [id,x] of Object.entries(t)){if(/^\d+$/.test(id)&&x&&Number.isFinite(+x.duration)&&+x.duration>=10&&+x.duration<=3600&&Number.isFinite(+x.elapsed)&&x.cues&&typeof x.cues==='object'){state.timers[id]=x;}}}}}catch{}try{await refresh();render();const preselected=+(new URLSearchParams(location.search).get('evidence_id')||0);if(preselected>0)await detailView(preselected);}catch(e){$('#view').innerHTML=`<div class="danger">${esc(e.message)}</div>`;}})();
+(async()=>{try{let stored=localStorage.getItem(timerStorageKey);if(stored){let t=JSON.parse(stored);if(t&&typeof t==='object'&&!Array.isArray(t)){for(let [id,x] of Object.entries(t)){if(/^\d+$/.test(id)&&x&&Number.isFinite(+x.duration)&&+x.duration>=10&&+x.duration<=3600&&Number.isFinite(+x.elapsed)&&x.cues&&typeof x.cues==='object'){state.timers[id]=x;}}}}}catch{}try{await refresh();if(!routeWorkspaceHash())render();const preselected=+(new URLSearchParams(location.search).get('evidence_id')||0);if(preselected>0)await detailView(preselected);}catch(e){$('#view').innerHTML=`<div class="danger">${esc(e.message)}</div>`;}})();
 
 // Load analytical data when the Experiment tab is selected.
 document.addEventListener('click',e=>{const b=e.target.closest('[data-page="experiments"]');if(b)loadExperiments().catch(err=>toast(err.message,true));},true);
